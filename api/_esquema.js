@@ -3,7 +3,7 @@
 // Todo va en un esquema propio `ruleta`, fuera de `public` (si la base es de Supabase, así su API
 // pública no lo expone). RLS activada y sin políticas: solo entra la app con su conexión.
 
-export const ESQUEMA_VERSION = 1;
+export const ESQUEMA_VERSION = 2;   // 2: clave del panel en la base (clave_hash)
 
 export const ESQUEMA_SQL = `
 create schema if not exists ruleta;
@@ -19,6 +19,7 @@ create table if not exists ruleta.ajustes (
   actualizado_en  timestamptz not null default now()
 );
 insert into ruleta.ajustes (id) values (1) on conflict (id) do nothing;
+alter table ruleta.ajustes add column if not exists clave_hash text;   -- clave del panel (scrypt)
 
 -- Participantes: los contactos que se registran en el iPad.
 create table if not exists ruleta.participantes (

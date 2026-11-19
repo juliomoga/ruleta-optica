@@ -22,13 +22,13 @@ tus clientes quedan en **tu** cuenta: nadie más los ve.
 
 Resumen para quien ya conoce Vercel:
 
-1. Pulsa el botón. Acepta crear la base **Neon** (plan gratuito) y pon `CLAVE_PANEL` (la clave del
-   panel):
+1. Pulsa el botón y acepta crear la base **Neon** (plan gratuito):
 
-   [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fjuliomoga%2Fruleta-optica&project-name=ruleta-premios&repository-name=ruleta-premios&env=CLAVE_PANEL&envDescription=La%20clave%20que%20quieras%20para%20entrar%20en%20el%20panel%20%28%2Fadmin%29.%20Ap%C3%BAntala.&envLink=https%3A%2F%2Fgithub.com%2Fjuliomoga%2Fruleta-optica%2Fblob%2Fmain%2FGUIA.md&stores=%5B%7B%22type%22%3A%22integration%22%2C%22integrationSlug%22%3A%22neon%22%2C%22productSlug%22%3A%22neon%22%2C%22protocol%22%3A%22storage%22%7D%5D)
+   [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fjuliomoga%2Fruleta-optica&project-name=ruleta-premios&repository-name=ruleta-premios&stores=%5B%7B%22type%22%3A%22integration%22%2C%22integrationSlug%22%3A%22neon%22%2C%22productSlug%22%3A%22neon%22%2C%22protocol%22%3A%22storage%22%7D%5D)
 
-2. Entra en `https://tu-proyecto.vercel.app/admin` con tu clave. Las tablas se crean solas la
-   primera vez. Rellena los ajustes (tu óptica, datos legales, logo, correo) y cambia los premios.
+2. Entra en `https://tu-proyecto.vercel.app/admin` y crea la clave del panel (la primera vez la
+   pide). Las tablas se crean solas. Rellena los ajustes (tu óptica, datos legales, logo, correo) y
+   cambia los premios.
 
 ## Páginas
 
@@ -63,7 +63,7 @@ Variables de entorno:
 | Variable | |
 |---|---|
 | `DATABASE_URL` | Conexión a Postgres. La pone sola la integración de Neon. Vale cualquier Postgres (también `POSTGRES_URL`); con Supabase, usa la conexión *Transaction pooler* (puerto 6543). |
-| `CLAVE_PANEL` | Clave para entrar en `/admin`. |
+| `CLAVE_PANEL` | Opcional. La clave del panel se crea en `/admin` la primera vez y se guarda cifrada en la base; si pones esta variable, manda ella (sirve para recuperar el panel si se olvida la clave). |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | Opcionales: el correo también se configura desde el panel. Si están, mandan. |
 
 ### Probar en tu ordenador

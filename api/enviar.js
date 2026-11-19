@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   const tiradaId = Number(b.tirada_id);
   if (!tiradaId) return error(res, 400, 'tirada', 'Falta tirada_id');
   try {
-    const admin = esAdmin(req);
+    const admin = await esAdmin(req);
     if (!admin) {
       const t = (await q('select participante_id from ruleta.tiradas where id = $1', [tiradaId])).rows[0];
       if (!t || !t.participante_id || !tokenValido(t.participante_id, b.token)) return error(res, 403, 'token', 'Sesión no válida.');

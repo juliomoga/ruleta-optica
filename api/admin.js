@@ -1,7 +1,7 @@
 // /api/admin?accion=… — panel de la óptica. Requiere la cabecera x-clave = CLAVE_PANEL.
 import { randomInt } from 'node:crypto';
 import {
-  q, ok, error, cuerpo, esAdmin, claveAdmin, parametro, urlPublica, nombreMostrar, colaTelefono,
+  q, ok, error, cuerpo, esAdmin, hayClave, cifrarClave, claveVariable, parametro, urlPublica, nombreMostrar, colaTelefono,
   leerAjustes, completarAjustes, configCorreo, POR_DEFECTO, ESTILOS_SORTEO, TEMAS, errorServidor,
 } from './_comun.js';
 import { enviarEmailTirada, htmlPremio, smtp } from './_email.js';
@@ -66,10 +66,24 @@ function limpiarAjustes(entrada, actuales) {
 }
 
 export default async function handler(req, res) {
-  if (!claveAdmin()) return error(res, 500, 'sin_clave', 'Falta la variable CLAVE_PANEL en Vercel. Añádela en Settings → Environment Variables y vuelve a desplegar.');
-  if (!esAdmin(req)) return error(res, 401, 'clave', 'Clave incorrecta');
   const accion = parametro(req, 'accion');
   const b = req.method === 'POST' ? cuerpo(req) : {};
+
+  // Sin clave: solo se puede preguntar si ya hay una y crear la primera.
+  try {
+    if (accion === 'estado-clave') return ok(res, { configurada: await hayClave() });
+    if (accion === 'crear-clave') {
+      if (req.method !== 'POST') return error(res, 405, 'metodo', 'Usa POST');
+      if (await hayClave()) return error(res, 409, 'ya_hay_clave', 'El panel ya tiene clave. Entra con ella.');
+      const clave = String(b.clave || '');
+      if (clave.length < 8) return error(res, 400, 'clave_corta', 'La clave tiene que tener al menos 8 caracteres.');
+      const r = await q('update ruleta.ajustes set clave_hash = $1 where id = 1 and clave_hash is null', [cifrarClave(clave)]);
+      return r.rowCount ? ok(res, { creada: true }) : error(res, 409, 'ya_hay_clave', 'El panel ya tiene clave. Entra con ella.');
+    }
+    if (!(await esAdmin(req))) return error(res, 401, 'clave', 'Clave incorrecta');
+  } catch (e) {
+    return errorServidor(res, 'admin clave', e);
+  }
 
   try {
     switch (accion) {
@@ -94,7 +108,7 @@ export default async function handler(req, res) {
           `select id, creado_en, emitido_en, cerrado_en, prueba, estilo, participantes, ganadores
              from ruleta.sorteos order by id desc limit 12`)).rows;
         const correo = configCorreo(a);
-        return ok(res, { ajustes: ajustesParaPanel(a), correo: correo ? { origen: correo.origen, from: correo.from } : null, premios, totales, tiradas, sorteos });
+        return ok(res, { clave_variable: !!claveVariable(), ajustes: ajustesParaPanel(a), correo: correo ? { origen: correo.origen, from: correo.from } : null, premios, totales, tiradas, sorteos });
       }
 
       case 'guardar-ajustes': {
@@ -102,6 +116,14 @@ export default async function handler(req, res) {
         const nuevos = limpiarAjustes(b, actuales);
         await q('update ruleta.ajustes set datos = $1::jsonb, actualizado_en = now() where id = 1', [JSON.stringify(nuevos)]);
         return ok(res, { guardado: true });
+      }
+
+      case 'cambiar-clave': {
+        if (claveVariable()) return error(res, 400, 'clave_variable', 'La clave está puesta en la variable CLAVE_PANEL de Vercel: cámbiala allí (o bórrala para usar la del panel).');
+        const nueva = String(b.nueva || '');
+        if (nueva.length < 8) return error(res, 400, 'clave_corta', 'La clave tiene que tener al menos 8 caracteres.');
+        await q('update ruleta.ajustes set clave_hash = $1 where id = 1', [cifrarClave(nueva)]);
+        return ok(res, { cambiada: true });
       }
 
       case 'logo': {

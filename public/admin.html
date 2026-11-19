@@ -33,7 +33,8 @@
   .muted { color: #888; } .ok { color: #1a9c3f; font-weight: 700; } .mal { color: #d01e24; font-weight: 700; }
   .etiqueta { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; background: #eee; }
   .etiqueta.prueba { background: #ffd23f; }
-  #login { max-width: 420px; margin: 80px auto; }
+  #login, #crear { max-width: 460px; margin: 80px auto; }
+  .small { font-size: 12.5px; }
   #aviso { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: #111; color: #fff; padding: 10px 18px; border-radius: 10px; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: 90vw; z-index: 9; }
   #aviso.ver { opacity: 1; }
   .prob { font-variant-numeric: tabular-nums; }
@@ -72,11 +73,18 @@
   <button id="salir" hidden>Salir</button>
 </header>
 <main>
-  <section id="login">
+  <section id="login" hidden>
     <h2>Clave del panel</h2>
-    <p class="muted">Es la que pusiste en la variable <code>CLAVE_PANEL</code> al instalar la ruleta en Vercel.</p>
     <p><input type="password" id="clave" class="largo" placeholder="Clave"></p>
     <button class="negro" id="entrar">Entrar</button>
+    <p class="muted small" style="margin-top:14px">¿La has olvidado? En Vercel → tu proyecto → Settings → Environment Variables, añade <code>CLAVE_PANEL</code> con una clave nueva y pulsa Redeploy: esa pasa a ser la clave.</p>
+  </section>
+  <section id="crear" hidden>
+    <h2>👋 Bienvenida a tu ruleta</h2>
+    <p>Lo primero: <b>crea la clave del panel</b>. Es la que usarás para entrar aquí a cambiar premios, ver participantes y lanzar el sorteo. Mínimo 8 caracteres. <b>Apúntala.</b></p>
+    <p><input type="password" id="nueva1" class="largo" placeholder="Nueva clave" autocomplete="new-password"></p>
+    <p><input type="password" id="nueva2" class="largo" placeholder="Repite la clave" autocomplete="new-password"></p>
+    <button class="negro" id="crearClave">Crear clave y entrar</button>
   </section>
 
   <div id="panel" hidden>
@@ -225,6 +233,12 @@
         </div>
       </details>
 
+      <details id="dClave">
+        <summary>Clave del panel</summary>
+        <p class="muted" id="claveVariable" hidden>La clave está puesta en la variable <code>CLAVE_PANEL</code> de Vercel. Para cambiarla, cámbiala allí y haz Redeploy (o bórrala para volver a usar la que se crea aquí).</p>
+        <p class="acciones" id="cambioClave"><input type="password" id="claveNueva" placeholder="Nueva clave (mín. 8)" autocomplete="new-password"><input type="password" id="claveNueva2" placeholder="Repítela" autocomplete="new-password"><button type="button" id="btnCambiarClave">Cambiar clave</button></p>
+      </details>
+
       <details class="peligro">
         <summary>Empezar de cero (para otro evento)</summary>
         <p>Borra <b>todos</b> los participantes, tiradas y sorteos y repone el stock de los premios. Los premios y los ajustes se quedan. <b>Descarga antes el CSV de participantes</b>: no se puede deshacer.</p>
@@ -248,7 +262,7 @@ async function api(accion, cuerpo, params) {
   if (j.error) throw new Error(j.mensaje || j.error);
   return j;
 }
-function salir() { clave = ''; localStorage.removeItem('ruleta_clave'); $('login').hidden = false; $('panel').hidden = true; $('salir').hidden = true; }
+function salir() { clave = ''; localStorage.removeItem('ruleta_clave'); $('login').hidden = false; $('crear').hidden = true; $('panel').hidden = true; $('salir').hidden = true; }
 $('entrar').onclick = async () => {
   clave = $('clave').value.trim();
   try { await api('resumen'); localStorage.setItem('ruleta_clave', clave); cargar(); }
@@ -265,6 +279,7 @@ async function cargar() {
   $('login').hidden = true; $('panel').hidden = false; $('salir').hidden = false;
   const a = d.ajustes;
   $('titulo').textContent = (a.optica.nombre || 'Ruleta de premios') + ' · panel';
+  $('claveVariable').hidden = !d.clave_variable; $('cambioClave').hidden = !!d.clave_variable;
   const t = d.totales;
   $('totales').innerHTML = `
     <div class="tot"><b>${t.participantes}</b><small>participantes</small></div>
@@ -375,6 +390,13 @@ function pintarLogos(a) {
   $('vistaRedondo').innerHTML = a.logos.redondo ? `<img src="/api/logo?tipo=redondo&v=${v}">` : '<span class="muted">sin logo</span>';
 }
 
+$('btnCambiarClave').onclick = async () => {
+  const a = $('claveNueva').value, b2 = $('claveNueva2').value;
+  if (a.length < 8) return aviso('La clave tiene que tener al menos 8 caracteres');
+  if (a !== b2) return aviso('Las dos claves no coinciden');
+  try { await api('cambiar-clave', { nueva: a }); clave = a; localStorage.setItem('ruleta_clave', clave); $('claveNueva').value = $('claveNueva2').value = ''; aviso('Clave cambiada'); }
+  catch (e) { aviso('Error: ' + e.message, 6000); }
+};
 $('btnCero').onclick = async () => {
   if ($('confirmarCero').value.trim() !== 'BORRAR') return aviso('Escribe BORRAR en la casilla para confirmar');
   if (!confirm('¿Seguro? Se borran todos los participantes, tiradas y sorteos. No se puede deshacer.')) return;
@@ -489,7 +511,29 @@ $('btnRecargar').onclick = cargar;
 $('btnBorrarPruebas').onclick = async () => { if (!confirm('¿Borrar todos los registros, tiradas y sorteos marcados como prueba?')) return; const r = await api('borrar-pruebas', {}); aviso(`Borrados ${r.participantes} participantes, ${r.tiradas} tiradas y ${r.sorteos} sorteos de prueba`); cargar(); };
 $('btnParticipantes').onclick = () => window.open('/api/admin?accion=participantes.csv&clave=' + encodeURIComponent(clave));
 $('btnTiradas').onclick = () => window.open('/api/admin?accion=tiradas.csv&clave=' + encodeURIComponent(clave));
-if (clave) cargar().catch((e) => aviso(e.message === 'clave' ? 'Vuelve a entrar' : e.message, 8000));
+// Arranque: si la ruleta aún no tiene clave, se pide crearla; si no, entrar.
+$('crearClave').onclick = async () => {
+  const a = $('nueva1').value, b2 = $('nueva2').value;
+  if (a.length < 8) return aviso('La clave tiene que tener al menos 8 caracteres');
+  if (a !== b2) return aviso('Las dos claves no coinciden');
+  try {
+    const r = await fetch('/api/admin?accion=crear-clave', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clave: a }) }).then((x) => x.json());
+    if (r.error) { aviso(r.mensaje, 6000); if (r.error === 'ya_hay_clave') { $('crear').hidden = true; $('login').hidden = false; } return; }
+    clave = a; localStorage.setItem('ruleta_clave', clave); $('crear').hidden = true;
+    aviso('Clave creada. ¡Ya puedes configurar tu ruleta!', 4000);
+    cargar();
+  } catch (e) { aviso('Error: ' + e.message, 6000); }
+};
+['nueva1', 'nueva2'].forEach((id) => $(id).addEventListener('keydown', (e) => { if (e.key === 'Enter') $('crearClave').click(); }));
+(async () => {
+  try {
+    const r = await fetch('/api/admin?accion=estado-clave').then((x) => x.json());
+    if (r.error) { $('login').hidden = false; return aviso(r.mensaje, 10000); }
+    if (!r.configurada) { localStorage.removeItem('ruleta_clave'); clave = ''; $('crear').hidden = false; return; }
+    if (clave) cargar().catch((e) => { $('login').hidden = false; aviso(e.message === 'clave' ? 'Vuelve a entrar' : e.message, 8000); });
+    else $('login').hidden = false;
+  } catch (e) { $('login').hidden = false; }
+})();
 </script>
 </body>
 </html>

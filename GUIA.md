@@ -24,7 +24,7 @@ páginas: la **pantalla**, la **tablet** y el **panel**.
 
 1. Pulsa este botón:
 
-   [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fjuliomoga%2Fruleta-optica&project-name=ruleta-premios&repository-name=ruleta-premios&env=CLAVE_PANEL&envDescription=La%20clave%20que%20quieras%20para%20entrar%20en%20el%20panel%20%28%2Fadmin%29.%20Ap%C3%BAntala.&envLink=https%3A%2F%2Fgithub.com%2Fjuliomoga%2Fruleta-optica%2Fblob%2Fmain%2FGUIA.md&stores=%5B%7B%22type%22%3A%22integration%22%2C%22integrationSlug%22%3A%22neon%22%2C%22productSlug%22%3A%22neon%22%2C%22protocol%22%3A%22storage%22%7D%5D)
+   [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fjuliomoga%2Fruleta-optica&project-name=ruleta-premios&repository-name=ruleta-premios&stores=%5B%7B%22type%22%3A%22integration%22%2C%22integrationSlug%22%3A%22neon%22%2C%22productSlug%22%3A%22neon%22%2C%22protocol%22%3A%22storage%22%7D%5D)
 
 2. Entra con tu cuenta de **GitHub** (*Continue with GitHub*) y acepta los permisos. Si es la
    primera vez, Vercel te crea la cuenta en ese momento (elige el plan **Hobby**).
@@ -33,17 +33,16 @@ páginas: la **pantalla**, la **tablet** y el **panel**.
 4. **Base de datos**: Vercel te propone crear una base **Neon**. Acepta, elige el plan gratuito
    (*Free*) y la región más cercana (*Frankfurt*), y pulsa **Create** / **Continue**. Ya está: la
    conexión se rellena sola.
-5. Te pide una variable:
-   - **CLAVE_PANEL**: invéntate una clave larga para entrar en el panel (por ejemplo
-     `ruleta-mi-optica-2026-xk7`). **Apúntala.**
-6. Pulsa **Deploy** y espera un minuto. Cuando salga el confeti, pulsa **Continue to Dashboard** y
+5. Pulsa **Deploy** y espera un minuto. Cuando salga el confeti, pulsa **Continue to Dashboard** y
    luego **Visit** para abrirla. Esa es tu dirección.
 
 > No tienes que crear tablas ni tocar la base de datos: la ruleta las crea sola la primera vez.
 
 ## Paso 3 · Configurar tu ruleta
 
-1. Abre `https://tu-direccion.vercel.app/admin` y entra con tu `CLAVE_PANEL`.
+1. Abre `https://tu-direccion.vercel.app/admin`. La primera vez te pide **crear la clave del
+   panel**: invéntate una (mínimo 8 caracteres) y **apúntala**. Es la que usarás para entrar.
+   Hazlo nada más instalar: hasta que la creas, el panel está abierto para quien tenga la dirección.
 
    *Si sale un error de base de datos: Vercel → tu proyecto → **Storage**. Tiene que haber una base
    Neon conectada al proyecto. Si no la hay, pulsa **Create Database → Neon** y conéctala; después,
@@ -140,8 +139,11 @@ regaló la ruleta no tiene acceso a nada.
 
 **¿Puede jugar alguien dos veces?** Con el mismo móvil, no.
 
-**Quiero cambiar la clave del panel.** Vercel → tu proyecto → Settings → Environment Variables →
-`CLAVE_PANEL` → Edit. Después, Deployments → Redeploy.
+**Quiero cambiar la clave del panel.** Panel → Ajustes → **Clave del panel**.
+
+**He olvidado la clave del panel.** Vercel → tu proyecto → Settings → Environment Variables →
+añade `CLAVE_PANEL` con una clave nueva → Save. Después, Deployments → los tres puntos del último →
+**Redeploy**. Desde ese momento la clave es esa.
 
 **¿Cómo actualizo la ruleta si sale una versión nueva?** Copia los archivos nuevos en tu
 repositorio de GitHub (o pídeselo a quien te ayude con la web): Vercel la vuelve a publicar sola y

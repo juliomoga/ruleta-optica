@@ -1,6 +1,6 @@
 // Utilidades compartidas por las funciones de la API (Vercel serverless, Node ESM).
 import pg from 'pg';
-import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
+import { createHash, createHmac, timingSafeEqual, randomBytes, scryptSync } from 'node:crypto';
 import { ESQUEMA_SQL, ESQUEMA_VERSION } from './_esquema.js';
 
 // bigint / numeric llegan como texto: convertirlos a número
@@ -192,17 +192,41 @@ function igual(a, b) {
   const A = Buffer.from(String(a || '')), B = Buffer.from(String(b || ''));
   return A.length === B.length && A.length > 0 && timingSafeEqual(A, B);
 }
-export const claveAdmin = () => process.env.CLAVE_PANEL || process.env.RULETA_ADMIN_CLAVE || '';
-// Secreto para firmar la sesión del iPad. No hace falta otra variable: sale de la clave y la base.
+// La clave del panel la crea la óptica la primera vez que entra en /admin y se guarda cifrada
+// (scrypt) en ruleta.ajustes.clave_hash. Si se pone la variable CLAVE_PANEL en Vercel, manda ella:
+// así se recupera el panel si se olvida la clave.
+export const claveVariable = () => process.env.CLAVE_PANEL || process.env.RULETA_ADMIN_CLAVE || '';
+// Secreto para firmar la sesión del iPad. No hace falta otra variable: sale de la conexión a la base.
 function secreto() {
-  return process.env.RULETA_SECRETO || createHash('sha256').update('ruleta|' + claveAdmin() + '|' + urlConexion()).digest('hex');
+  return process.env.RULETA_SECRETO || createHash('sha256').update('ruleta|' + urlConexion()).digest('hex');
 }
 export function tokenParticipante(id) {
   return createHmac('sha256', secreto()).update(`p:${id}`).digest('hex').slice(0, 32);
 }
 export const tokenValido = (id, token) => igual(tokenParticipante(id), token);
-export function esAdmin(req) {
-  return igual(claveAdmin(), req.headers['x-clave'] || parametro(req, 'clave'));
+
+export function cifrarClave(clave) {
+  const sal = randomBytes(16);
+  return 'scrypt$' + sal.toString('hex') + '$' + scryptSync(String(clave), sal, 32).toString('hex');
+}
+function claveCorrecta(clave, hash) {
+  const m = /^scrypt\$([0-9a-f]+)\$([0-9a-f]+)$/.exec(hash || '');
+  if (!m || !clave) return false;
+  const calc = scryptSync(String(clave), Buffer.from(m[1], 'hex'), 32);
+  const guardado = Buffer.from(m[2], 'hex');
+  return calc.length === guardado.length && timingSafeEqual(calc, guardado);
+}
+// ¿Hay clave creada? (o variable CLAVE_PANEL)
+export async function hayClave() {
+  if (claveVariable()) return true;
+  return !!(await q('select clave_hash from ruleta.ajustes where id = 1')).rows[0]?.clave_hash;
+}
+export async function esAdmin(req) {
+  const dada = req.headers['x-clave'] || parametro(req, 'clave');
+  if (!dada) return false;
+  if (claveVariable()) return igual(claveVariable(), dada);
+  const hash = (await q('select clave_hash from ruleta.ajustes where id = 1')).rows[0]?.clave_hash;
+  return claveCorrecta(dada, hash);
 }
 
 // ---------------------------------------------------------------- validación
