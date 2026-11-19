@@ -1,0 +1,16 @@
+{
+  "name": "ruleta-premios-optica",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Ruleta de premios para ópticas: pantalla + tablet de registro + panel. Para ferias, aniversarios y eventos.",
+  "license": "MIT",
+  "scripts": {
+    "local": "node --env-file-if-exists=.env local.js"
+  },
+  "dependencies": {
+    "nodemailer": "^9.0.3",
+    "pg": "^8.22.0"
+  },
+  "engines": { "node": ">=20" }
+}

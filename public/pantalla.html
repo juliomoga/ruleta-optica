@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Ruleta · Pantalla</title>
+<meta name="viewport" content="width=384, initial-scale=1, user-scalable=no">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  /* Diseñada a 384×768 (pantalla vertical). Si el player o la tele la abre a otro tamaño,
+     #stage se escala entero para que quepa sin deformarse. */
+  :root { --color: #d01e24; }
+  html, body { margin: 0; width: 100%; height: 100%; background: #000; overflow: hidden; cursor: none; }
+  #stage { position: absolute; left: 0; top: 0; width: 384px; height: 768px; background: #000; color: #fff;
+           font-family: Montserrat, "Arial Black", Arial, sans-serif; overflow: hidden; transform-origin: 0 0; }
+  #cabecera { position: absolute; left: 0; top: 0; width: 384px; height: 92px; text-align: center; }
+  #cabecera img { max-width: 250px; max-height: 42px; margin-top: 14px; display: block; margin-left: auto; margin-right: auto; }
+  #cabecera img[hidden], #cabecera .nombre:empty { display: none; }
+  #cabecera img.invertir { filter: invert(1); }
+  #cabecera .nombre { font-size: 30px; font-weight: 900; line-height: 1; padding: 20px 10px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #cabecera .sub { font-size: 17px; font-weight: 900; letter-spacing: .22em; color: var(--color); margin-top: 4px; white-space: nowrap; overflow: hidden; }
+  #ruleta { position: absolute; left: 4px; top: 104px; }
+  #puntero { position: absolute; left: 50%; top: 86px; margin-left: -22px; width: 0; height: 0; z-index: 5;
+             border-left: 22px solid transparent; border-right: 22px solid transparent; border-top: 44px solid var(--color);
+             filter: drop-shadow(0 0 0 #fff) drop-shadow(0 3px 0 #fff); }
+  #puntero:after { content: ""; position: absolute; left: -16px; top: -44px; width: 0; height: 0;
+             border-left: 16px solid transparent; border-right: 16px solid transparent; border-top: 32px solid #ff5a5a; }
+  #mensaje { position: absolute; left: 0; top: 500px; width: 384px; height: 268px; display: flex; flex-direction: column;
+             align-items: center; justify-content: center; text-align: center; padding: 0 14px; box-sizing: border-box; }
+  #mensaje .grande { font-size: 44px; font-weight: 900; line-height: 1.05; text-transform: uppercase; }
+  #mensaje .medio  { font-size: 26px; font-weight: 900; line-height: 1.1; margin-top: 10px; }
+  #mensaje .peque  { font-size: 18px; font-weight: 700; color: #bbb; margin-top: 10px; letter-spacing: .06em; }
+  #mensaje.premio .grande { color: #ffd23f; font-size: 30px; letter-spacing: .1em; }
+  #mensaje.premio .medio  { font-size: 36px; color: #fff; }
+  #mensaje.premio .medio.largo { font-size: 28px; }
+  #mensaje.premio .medio.repetir { color: #7CFF7C; }
+  .latido { animation: latido 1s ease-in-out infinite; }
+  @keyframes latido { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+  .parpadeo { animation: parpadeo .5s steps(2, start) infinite; }
+  @keyframes parpadeo { to { visibility: hidden; } }
+  #confeti { position: absolute; left: 0; top: 0; width: 384px; height: 768px; z-index: 9; pointer-events: none; }
+  #estado { position: absolute; right: 6px; top: 6px; width: 8px; height: 8px; border-radius: 50%; background: #d01e24; opacity: 0; z-index: 10; }
+  #estado.sin { opacity: 1; }
+
+  /* ---- Sorteo final (js/sorteo.js): capa a pantalla completa sobre la ruleta ---- */
+  #sorteo { position: absolute; left: 0; top: 0; width: 384px; height: 768px; background: #000; z-index: 8; overflow: hidden; text-align: center; }
+  #sorteo .s-cab { position: absolute; left: 0; top: 0; width: 384px; height: 160px; }
+  #sorteo .s-cab img { max-width: 190px; max-height: 44px; margin-top: 12px; }
+  #sorteo .s-cab img.invertir { filter: invert(1); }
+  #sorteo .s-marca { font-size: 24px; font-weight: 900; padding-top: 14px; min-height: 30px; }
+  #sorteo .s-titulo { font-size: 42px; font-weight: 900; color: #ffd23f; line-height: 1; margin-top: 8px; }
+  #sorteo .s-premio { font-size: 25px; font-weight: 900; color: #fff; margin-top: 8px; letter-spacing: .03em; }
+  #sorteo .s-zona { position: absolute; left: 0; top: 168px; width: 384px; height: 420px; overflow: hidden; }
+  #sorteo .s-pie { position: absolute; left: 0; top: 596px; width: 384px; height: 172px; display: flex; align-items: center; justify-content: center;
+                   font-size: 36px; font-weight: 900; line-height: 1.1; padding: 0 12px; box-sizing: border-box; color: #fff; }
+  #sorteo .s-prueba { display: none; position: absolute; left: 0; bottom: 0; width: 384px; height: 26px; line-height: 26px; background: #ffd23f; color: #000;
+                      font-weight: 900; font-size: 14px; letter-spacing: .12em; z-index: 3; }
+  #sorteo.prueba .s-prueba { display: block; }
+  .s-centro { position: absolute; left: 0; top: 0; width: 384px; height: 420px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 10px; box-sizing: border-box; }
+  .s-xl { font-size: 50px; font-weight: 900; line-height: 1; white-space: nowrap; }
+  .s-num { font-size: 96px; font-weight: 900; line-height: 1; color: #ffd23f; }
+  .s-lg { font-size: 36px; font-weight: 900; line-height: 1.05; color: #ffd23f; white-space: nowrap; }
+  .s-md { font-size: 27px; font-weight: 900; line-height: 1.15; margin: 8px 0; }
+  .s-sm { font-size: 18px; font-weight: 700; color: #bbb; line-height: 1.25; margin-top: 18px; }
+  .s-cuenta { font-size: 220px; font-weight: 900; line-height: 1; color: #ffd23f; }
+  .s-cuenta.pop { animation: s-pop .9s ease-out; }
+  @keyframes s-pop { 0% { transform: scale(1.7); opacity: .2; } 25% { transform: scale(1); opacity: 1; } 100% { transform: scale(.92); opacity: 1; } }
+  .s-nombre { font-weight: 900; line-height: 1.05; color: #fff; white-space: nowrap; margin-top: 16px; }
+  .s-tel { font-size: 24px; font-weight: 700; color: #ffd23f; letter-spacing: .08em; margin-top: 6px; min-height: 30px; }
+  /* tragaperras */
+  .s-reel { position: absolute; left: 0; top: 0; width: 384px; height: 420px; overflow: hidden; }
+  .s-tira { position: absolute; left: 0; top: 0; width: 384px; will-change: transform; }
+  .s-fila { height: 70px; line-height: 70px; font-weight: 900; white-space: nowrap; color: #fff; }
+  .s-marco { position: absolute; left: 6px; top: 175px; width: 372px; height: 70px; border: 5px solid #ffd23f; border-radius: 10px; box-sizing: border-box; }
+  .s-velo { position: absolute; left: 0; width: 384px; height: 165px; }
+  .s-velo-a { top: 0; background: linear-gradient(to bottom, #000 10%, rgba(0,0,0,0)); }
+  .s-velo-b { bottom: 0; background: linear-gradient(to top, #000 10%, rgba(0,0,0,0)); }
+  /* eliminación */
+  .s-rejilla { position: absolute; left: 0; top: 0; width: 384px; height: 420px; }
+  .s-celda { position: absolute; font-weight: 900; white-space: nowrap; overflow: hidden; text-align: center; color: #fff; transition: opacity .25s; }
+  .s-celda.fuera { opacity: .13; }
+  .s-celda.final { color: #ffd23f; animation: latido .5s ease-in-out infinite; }
+  .s-celda.gana { background: #ffd23f; color: #000; border-radius: 6px; animation: latido .4s ease-in-out infinite; z-index: 2; overflow: visible; }
+  .s-celda.premiado { color: #d01e24; opacity: .55; }
+  /* letra a letra */
+  .s-letras { display: flex; justify-content: center; flex-wrap: nowrap; }
+  .s-letra { display: inline-block; background: #222; color: #fff; font-weight: 900; border-radius: 6px; margin: 0 2px; text-align: center; overflow: hidden; }
+  .s-letra.fija { background: #ffd23f; color: #000; }
+  .s-letra.hueco { background: transparent; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="cabecera">
+    <img id="logo" alt="" hidden>
+    <div class="nombre" id="nombre"></div>
+    <div class="sub" id="sub"></div>
+  </div>
+  <div id="puntero"></div>
+  <div id="ruleta"></div>
+  <div id="mensaje"></div>
+  <canvas id="confeti" width="384" height="768"></canvas>
+  <div id="estado"></div>
+</div>
+<script src="js/rueda.js"></script>
+<script src="js/sorteo.js"></script>
+<script>
+(function () {
+  var stage = document.getElementById('stage');
+  function escalar() {
+    var s = Math.min(window.innerWidth / 384, window.innerHeight / 768);
+    var x = (window.innerWidth - 384 * s) / 2, y = (window.innerHeight - 768 * s) / 2;
+    stage.style.transform = 'translate(' + x + 'px,' + y + 'px) scale(' + s + ')';
+  }
+  window.addEventListener('resize', escalar); escalar();
+
+  var rueda = crearRueda(document.getElementById('ruleta'), { tamano: 376 });
+  // ?invertir=1 pone el logo en negativo (para logos negros sobre el fondo negro de la pantalla)
+  var INVERTIR = /[?&]invertir=1/.test(location.search);
+  var mensaje = document.getElementById('mensaje');
+  var estadoDot = document.getElementById('estado');
+  var confeti = iniciarConfeti(document.getElementById('confeti'));
+  var sorteoUI = crearSorteo(stage, { confeti: confeti });   // sorteo final del día (lo lanza el panel)
+  var version = null;          // versión desplegada: si cambia, la página se recarga sola
+
+  var temaUrl = (location.search.match(/[?&]tema=([a-z]+)/) || [])[1];
+  var firmaPremios = '';
+  var ultimaVista = null;      // id de la última tirada ya procesada
+  var cola = [];               // tiradas pendientes de animar
+  var ocupada = false;
+  var fraseReposo = 0;
+  var marca = { nombre: '', titulo: 'Ruleta de premios', subtitulo: '', color: '#d01e24' };
+  function frases() {
+    return [
+      ['¡GIRA Y GANA!', 'Regístrate en la tablet', ''],
+      ['¡TODOS GANAN!', 'Vales, regalos y sorpresas', ''],
+      [marca.subtitulo || marca.titulo || 'RULETA', 'Gira la ruleta de ' + marca.nombre, ''],
+    ];
+  }
+  var firmaMarca = '';
+  function aplicarMarca(m) {
+    var f = JSON.stringify(m);
+    if (!m || f === firmaMarca) return;
+    firmaMarca = f; marca = m;
+    document.documentElement.style.setProperty('--color', m.color || '#d01e24');
+    var logo = document.getElementById('logo');
+    if (m.logo_largo) { logo.src = m.logo_largo; logo.hidden = false; logo.className = (INVERTIR || m.invertir_logo) ? 'invertir' : ''; document.getElementById('nombre').textContent = ''; }
+    else { logo.hidden = true; document.getElementById('nombre').textContent = m.nombre || ''; }
+    document.getElementById('sub').textContent = (m.subtitulo || m.titulo || '').toLocaleUpperCase('es-ES');
+    rueda.setLogo(m.logo_redondo || null);
+    sorteoUI.setMarca(m.logo_largo || null, m.nombre);
+    var img = stage.querySelector('#sorteo .s-cab img'); if (img) img.className = (INVERTIR || m.invertir_logo) ? 'invertir' : '';
+  }
+
+  function pintar(clase, grande, medio, peque, medioClase) {
+    mensaje.className = clase;
+    mensaje.innerHTML = '<div class="grande ' + (clase === 'reposo' ? 'latido' : '') + '">' + grande + '</div>' +
+      (medio ? '<div class="medio ' + (medioClase || '') + '">' + medio + '</div>' : '') +
+      (peque ? '<div class="peque">' + peque + '</div>' : '');
+  }
+  function reposo() {
+    var F = frases(), f = F[fraseReposo % F.length]; fraseReposo++;
+    pintar('reposo', esc(f[0]), esc(f[1]), esc(f[2]));
+  }
+  setInterval(function () { if (!ocupada) reposo(); }, 5000);
+  reposo();
+
+  function esc(s) { return String(s || '').replace(/[&<>]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }); }
+
+  function siguiente() {
+    if (sorteoUI.activo()) { cola = []; return; }   // durante el sorteo la ruleta no se anima
+    if (ocupada || !cola.length) return;
+    var t = cola.shift();
+    ocupada = true;
+    var idx = rueda.indicePremio(t.premio_id);
+    pintar('giro', '¡SUERTE!', '', '');
+    mensaje.querySelector('.grande').className = 'grande latido';
+    rueda.girarA(idx, { duracion: t.duracion || 7000, alTerminar: function () {
+      var repetir = t.premio_tipo === 'repetir';
+      var nombre = esc(t.premio_nombre);
+      pintar('premio', repetir ? '¡OTRA VEZ!' : '¡PREMIO!', nombre, repetir ? 'Vuelve a girar' : (t.premio_tipo === 'vale' ? 'Te lo enviamos por email' : 'Pídeselo a nuestro equipo'),
+        (nombre.length > 22 ? 'largo ' : '') + (repetir ? 'repetir' : ''));
+      mensaje.querySelector('.grande').className = 'grande parpadeo';
+      if (!repetir && !sorteoUI.activo()) confeti.lanzar();
+      setTimeout(function () {
+        rueda.reposo(); ocupada = false; reposo();
+        siguiente();
+      }, repetir ? 5000 : 10000);
+    } });
+  }
+
+  var fallos = 0;
+  function consultar() {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', '/api/estado?_=' + Date.now(), true);
+    xhr.timeout = 4000;
+    xhr.onload = function () {
+      try {
+        if (xhr.status !== 200) throw new Error('HTTP ' + xhr.status);
+        var e = JSON.parse(xhr.responseText);
+        fallos = 0; estadoDot.className = '';
+        aplicarMarca(e.marca);
+        sorteoUI.actualizar(e.sorteo || null, Date.parse(e.ahora) - Date.now());
+        // Si se ha desplegado una versión nueva, recarga la página cuando no esté pasando nada.
+        if (e.version) {
+          if (version === null) version = e.version;
+          else if (e.version !== version && !ocupada && !cola.length && !sorteoUI.activo()) { location.reload(); return; }
+        }
+        var tema = temaUrl || e.tema || 'feria';
+        var firma = tema + marca.color + JSON.stringify(e.premios);
+        if (firma !== firmaPremios) { firmaPremios = firma; rueda.setPremios(aplicarTemaRueda(rueda, tema, e.premios, marca.color)); }
+        var u = e.ultima;
+        if (ultimaVista === null) { ultimaVista = u ? u.id : 0; return; }   // al arrancar no re-anima la última
+        if (u && u.id !== ultimaVista) {
+          ultimaVista = u.id;
+          var edad = new Date(e.ahora) - new Date(u.creado_en);
+          if (edad < 30000) { u.duracion = e.duracion_ms; cola.push(u); siguiente(); }
+        }
+      } catch (err) { fallo(); }
+    };
+    xhr.onerror = fallo; xhr.ontimeout = fallo;
+    xhr.send();
+  }
+  function fallo() { fallos++; if (fallos >= 4) estadoDot.className = 'sin'; }
+  setInterval(consultar, 800);
+  consultar();
+
+  // Confeti sencillo sobre un canvas
+  function iniciarConfeti(cv) {
+    var ctx = cv.getContext('2d'), parts = [], colores = ['#e0201f', '#ffd23f', '#1e6fd9', '#1db954', '#ff7a00', '#fff', '#ff3d8a'];
+    function lanzar() {
+      for (var i = 0; i < 160; i++) parts.push({
+        x: 192 + (Math.random() - .5) * 120, y: 380, vx: (Math.random() - .5) * 14, vy: -Math.random() * 16 - 6,
+        w: 6 + Math.random() * 6, h: 8 + Math.random() * 8, r: Math.random() * Math.PI, vr: (Math.random() - .5) * .3,
+        c: colores[Math.floor(Math.random() * colores.length)], vida: 220 + Math.random() * 80 });
+      if (parts.length === 160) tick();
+    }
+    function tick() {
+      ctx.clearRect(0, 0, 384, 768);
+      for (var i = parts.length - 1; i >= 0; i--) {
+        var p = parts[i];
+        p.vy += .35; p.x += p.vx; p.y += p.vy; p.vx *= .99; p.r += p.vr; p.vida--;
+        if (p.vida <= 0 || p.y > 800) { parts.splice(i, 1); continue; }
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c; ctx.globalAlpha = Math.min(1, p.vida / 60);
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); ctx.restore();
+      }
+      if (parts.length) requestAnimationFrame(tick); else ctx.clearRect(0, 0, 384, 768);
+    }
+    return { lanzar: lanzar };
+  }
+})();
+</script>
+</body>
+</html>

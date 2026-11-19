@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Ruleta · Tablet</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root { --rojo: #d01e24; --negro: #111; }
+  * { -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; min-height: 100%; }
+  body { font-family: Montserrat, -apple-system, "Segoe UI", Roboto, sans-serif; background: #f3f3f3; color: var(--negro);
+         -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: manipulation; }
+  #app { max-width: 1100px; margin: 0 auto; padding: 16px 20px 40px; }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 6px 4px 14px; }
+  header img { max-height: 46px; max-width: 220px; }
+  header .nombre { font-size: 22px; font-weight: 900; }
+  header .sub { font-weight: 900; letter-spacing: .2em; font-size: 14px; color: var(--rojo); }
+  #sonido, #musicaBtn { font-size: 26px; background: #fff; border: 2px solid #ddd; border-radius: 12px; width: 54px; height: 48px; }
+  #sonido.off, #musicaBtn.off { opacity: .45; }
+  .layout { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+  .col-rueda { position: relative; flex: 0 0 auto; }
+  .col-contenido { width: 100%; }
+  @media (min-width: 900px) and (orientation: landscape) {
+    .layout { flex-direction: row; align-items: flex-start; }
+    .col-rueda { flex: 0 0 360px; padding-top: 10px; }
+    .col-contenido { flex: 1; }
+  }
+  .puntero { position: absolute; left: 50%; top: -8px; margin-left: -18px; width: 0; height: 0; z-index: 5;
+             border-left: 18px solid transparent; border-right: 18px solid transparent; border-top: 36px solid var(--rojo);
+             filter: drop-shadow(0 2px 0 #fff); }
+  .tarjeta { background: #fff; border-radius: 18px; padding: 24px 26px; box-shadow: 0 2px 14px rgba(0,0,0,.06); box-sizing: border-box; }
+  h1 { font-size: 30px; font-weight: 900; margin: 0 0 6px; line-height: 1.1; }
+  .intro { margin: 0 0 18px; font-size: 17px; color: #444; font-weight: 500; }
+  label { display: block; font-weight: 700; margin-bottom: 14px; font-size: 15px; }
+  label span.et { display: block; margin-bottom: 6px; }
+  input[type=text], input[type=tel], input[type=email] { font: inherit; font-size: 22px; padding: 13px 16px; border: 2px solid #ddd; border-radius: 12px; width: 100%; box-sizing: border-box; -webkit-user-select: text; user-select: text; }
+  input:focus { outline: none; border-color: var(--negro); }
+  .check { display: flex; gap: 12px; align-items: flex-start; font-weight: 500; font-size: 14.5px; line-height: 1.4; color: #333; }
+  .check input { width: 30px; height: 30px; flex: 0 0 30px; margin: 0; accent-color: var(--rojo); }
+  .check a { color: var(--rojo); font-weight: 700; }
+  #txtCompleto { font-size: 12.5px; line-height: 1.45; color: #555; background: #fafafa; border: 1px solid #eee; border-radius: 10px; padding: 12px 14px; margin: -6px 0 14px; max-height: 190px; overflow: auto; -webkit-overflow-scrolling: touch; }
+  .firma-cab { display: flex; justify-content: space-between; font-weight: 700; font-size: 15px; margin-bottom: 6px; }
+  .firma-cab a { color: var(--rojo); font-weight: 700; }
+  canvas#firma { width: 100%; height: 150px; border: 2px dashed #bbb; border-radius: 12px; background: #fff; touch-action: none; display: block; box-sizing: border-box; }
+  .error { background: #fdecec; color: #a4121a; padding: 12px 16px; border-radius: 12px; font-weight: 700; margin: 12px 0; font-size: 16px; }
+  .boton { width: 100%; background: var(--rojo); color: #fff; border: 0; border-radius: 16px; font: inherit; font-size: 29px; font-weight: 900; padding: 20px; letter-spacing: .03em; margin-top: 8px; cursor: pointer; }
+  .boton:disabled { opacity: .5; }
+  .boton.secundario { background: #fff; color: var(--negro); border: 2px solid #ddd; font-size: 20px; padding: 14px; }
+  .centro { text-align: center; }
+  .grande { font-size: 38px; font-weight: 900; line-height: 1.1; margin: 8px 0; }
+  .medio { font-size: 20px; font-weight: 500; color: #444; margin: 6px 0 16px; }
+  .premio-caja { background: var(--rojo); color: #fff; border-radius: 16px; padding: 22px; font-size: 30px; font-weight: 900; line-height: 1.15; margin: 14px 0; }
+  .premio-caja.repetir { background: #1a9c3f; }
+  .codigo { display: inline-block; border: 2px dashed #111; border-radius: 10px; padding: 8px 18px; font-size: 22px; font-weight: 800; letter-spacing: .12em; margin: 4px 0 10px; }
+  .detalle { font-size: 16px; color: #444; margin: 6px 0 14px; }
+  .estado-email { font-size: 15px; font-weight: 700; margin: 8px 0 18px; }
+  .puntos:after { content: "…"; animation: puntos 1.2s steps(4, end) infinite; }
+  @keyframes puntos { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
+  .banner-prueba { background: #ffd23f; color: #111; font-weight: 900; text-align: center; padding: 6px; border-radius: 10px; margin-bottom: 10px; }
+  #confeti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
+  .sorteo-aviso { background: #fff8e1; border: 2px solid #ffc400; border-radius: 14px; padding: 12px 16px; font-size: 16px; font-weight: 500; line-height: 1.35; margin: 4px 0 16px; }
+  .sorteo-aviso b { font-weight: 900; }
+  /* Sorteo final: capa a pantalla completa mientras la pantalla LED hace el sorteo */
+  #sorteoCapa { position: fixed; left: 0; top: 0; width: 100%; height: 100%; background: #111; color: #fff; z-index: 100; display: flex; align-items: center; justify-content: center; text-align: center; }
+  #sorteoCapa[hidden] { display: none; }
+  .sc-caja { max-width: 720px; padding: 24px; }
+  .sc-caja img { max-height: 46px; max-width: 240px; }
+  .sc-caja img.invertir { filter: invert(1); }
+  .sc-marca { font-size: 26px; font-weight: 900; }
+  .sc-titulo { font-size: 54px; font-weight: 900; color: #ffd23f; margin-top: 22px; line-height: 1.05; }
+  .sc-premio { font-size: 26px; font-weight: 900; margin-top: 8px; text-transform: uppercase; letter-spacing: .04em; }
+  .sc-estado { font-size: 34px; font-weight: 900; margin-top: 36px; min-height: 44px; }
+  .sc-estado.cuenta { font-size: 150px; color: #ffd23f; line-height: 1; }
+  .sc-nombres { margin-top: 18px; min-height: 60px; }
+  .sc-nombres div { font-size: 46px; font-weight: 900; line-height: 1.15; }
+  .sc-nombres small { display: block; font-size: 20px; font-weight: 700; color: #ffd23f; letter-spacing: .08em; }
+  .sc-pie { font-size: 20px; font-weight: 500; color: #bbb; margin-top: 30px; }
+  .sc-prueba { display: inline-block; background: #ffd23f; color: #111; font-weight: 900; padding: 4px 14px; border-radius: 8px; margin-top: 22px; letter-spacing: .1em; }
+  .sc-cerrar { margin-top: 26px; background: transparent; color: #bbb; border: 2px solid #555; border-radius: 12px; font: inherit; font-size: 17px; font-weight: 700; padding: 10px 20px; }
+</style>
+</head>
+<body>
+<canvas id="confeti"></canvas>
+<div id="sorteoCapa" hidden>
+  <div class="sc-caja">
+    <img id="scLogo" alt="" hidden><div class="sc-marca" id="scMarca"></div>
+    <div class="sc-titulo">GRAN SORTEO</div>
+    <div class="sc-premio" id="scPremio"></div>
+    <div class="sc-estado" id="scEstado"></div>
+    <div class="sc-nombres" id="scNombres"></div>
+    <div class="sc-pie" id="scPie">Mira la pantalla grande</div>
+    <div class="sc-prueba" id="scPrueba" hidden>PRUEBA · SIMULACRO</div>
+    <div><button type="button" class="sc-cerrar" id="scCerrar" hidden>Volver a la ruleta</button></div>
+  </div>
+</div>
+<div id="app">
+  <header>
+    <span><img id="logo" alt="" hidden><span class="nombre" id="nombre"></span></span>
+    <div class="sub" id="sub"></div>
+    <span><button id="musicaBtn" type="button" title="Música de fondo">🎵</button> <button id="sonido" type="button" title="Sonido">🔊</button></span>
+  </header>
+  <div id="bannerPrueba" class="banner-prueba" hidden>MODO PRUEBA — estos registros se pueden borrar desde el panel</div>
+  <div class="layout">
+    <div class="col-rueda"><div class="puntero"></div><div id="rueda"></div></div>
+    <div class="col-contenido">
+
+      <section id="v-inicio" class="tarjeta">
+        <h1>Regístrate y gira la ruleta</h1>
+        <p class="intro" id="intro"></p>
+        <form id="form" autocomplete="off" novalidate>
+          <label><span class="et">Nombre y apellidos</span><input type="text" name="nombre" maxlength="80" autocapitalize="words"></label>
+          <label><span class="et">Teléfono móvil</span><input type="tel" name="telefono" inputmode="tel" maxlength="20" placeholder="6XX XXX XXX"></label>
+          <label><span class="et">Email (ahí te llega el premio)</span><input type="email" name="email" inputmode="email" autocapitalize="none" autocorrect="off" maxlength="120"></label>
+          <label class="check"><input type="checkbox" name="consentimiento"><span><span id="txtResumen"></span> <a href="#" id="verMas">Ver información completa</a></span></label>
+          <div id="txtCompleto" hidden></div>
+          <label class="check"><input type="checkbox" name="comercial"><span id="txtComercial"></span></label>
+          <div class="firma-cab"><span>Firma aquí con el dedo</span><a href="#" id="borrarFirma">Borrar</a></div>
+          <canvas id="firma"></canvas>
+          <div id="error" class="error" hidden></div>
+          <button type="submit" id="btnGirar" class="boton">¡GIRAR LA RULETA!</button>
+        </form>
+      </section>
+
+      <section id="v-giro" class="tarjeta centro" hidden>
+        <div class="grande">¡Mira la pantalla!</div>
+        <div class="medio">La ruleta está girando<span class="puntos"></span></div>
+      </section>
+
+      <section id="v-premio" class="tarjeta centro" hidden>
+        <div class="grande" id="pTitulo"></div>
+        <div class="premio-caja" id="pCaja"></div>
+        <div id="pCodigo" class="codigo" hidden></div>
+        <div class="detalle" id="pDetalle"></div>
+        <div class="estado-email" id="pEmail"></div>
+        <div class="sorteo-aviso" id="pSorteo" hidden></div>
+        <button type="button" class="boton" id="btnRepetir" hidden>¡GIRAR OTRA VEZ!</button>
+        <button type="button" class="boton secundario" id="btnSiguiente">Siguiente jugador</button>
+      </section>
+
+    </div>
+  </div>
+</div>
+<script src="js/rueda.js"></script>
+<script>
+(function () {
+  var PRUEBA = /[?&]prueba=1/.test(location.search);
+  if (PRUEBA) document.getElementById('bannerPrueba').hidden = false;
+  var $ = function (id) { return document.getElementById(id); };
+  var vistas = ['v-inicio', 'v-giro', 'v-premio'];
+  function vista(v) { vistas.forEach(function (id) { $(id).hidden = (id !== v); }); window.scrollTo(0, 0); }
+  function esc(s) { return String(s || '').replace(/[&<>]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }); }
+  function post(url, datos) {
+    return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(datos) })
+      .then(function (r) { return r.json().then(function (j) { j.__status = r.status; return j; }); });
+  }
+
+  // ---------- sonido (Web Audio, sin ficheros) ----------
+  var AC = null, silencio = localStorage.getItem('ruleta_silencio') === '1';
+  function audio() {
+    if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+    if (AC.state === 'suspended') AC.resume();
+    return AC;
+  }
+  function nota(freq, t0, dur, tipo, vol) {
+    if (silencio) return;
+    var ac = audio(), o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime + t0;
+    o.type = tipo || 'triangle'; o.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol || 0.25, t + 0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + dur + 0.05);
+  }
+  function tick(progreso) { nota(700 + 500 * (1 - progreso), 0, 0.045, 'square', 0.08); }
+  function fanfarria() {
+    [523.25, 659.25, 783.99, 1046.5].forEach(function (f, i) { nota(f, i * 0.11, 0.35, 'triangle', 0.3); });
+    [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach(function (f) { nota(f, 0.5, 1.4, 'triangle', 0.18); });
+    for (var i = 0; i < 6; i++) nota(1800 + Math.random() * 1200, 0.55 + i * 0.09, 0.08, 'sine', 0.06);
+  }
+  function campanita() { nota(880, 0, 0.18, 'sine', 0.3); nota(1174.7, 0.16, 0.45, 'sine', 0.3); nota(1568, 0.32, 0.6, 'sine', 0.22); }
+  function fallo() { nota(180, 0, 0.35, 'sawtooth', 0.12); nota(140, 0.12, 0.4, 'sawtooth', 0.12); }
+  function click() { nota(600, 0, 0.05, 'sine', 0.15); }
+  var btnSonido = $('sonido');
+  function pintarSonido() { btnSonido.textContent = silencio ? '🔇' : '🔊'; btnSonido.className = silencio ? 'off' : ''; }
+  btnSonido.addEventListener('click', function () { silencio = !silencio; localStorage.setItem('ruleta_silencio', silencio ? '1' : '0'); pintarSonido(); if (!silencio) { audio(); click(); musica.arrancar(); } else { musica.parar(); } });
+  pintarSonido();
+
+  // ---------- música de fondo (baja) ----------
+  // Si existe audio/ambiente.mp3 (una pista libre de derechos) suena en bucle; si no, una marcha de
+  // circo sintetizada (composición propia). Baja casi a cero mientras gira la rueda y sale el premio.
+  // En iPad el volumen del <audio> no se puede tocar por código: por eso pasa por un GainNode.
+  // Empieza con el primer toque en la pantalla (iOS no deja sonar nada antes). ?musica=0.3 cambia el volumen.
+  var musica = (function () {
+    var activa = localStorage.getItem('ruleta_musica') !== '0';
+    var VOL = parseFloat((location.search.match(/[?&]musica=([\d.]+)/) || [])[1]) || 0.22, VOL_BAJO = 0.03;
+    var gain = null, el = null, sinte = null, arrancada = false;
+    function nivel(v, tau) { if (!gain) return; var ac = audio(); gain.gain.cancelScheduledValues(ac.currentTime); gain.gain.setTargetAtTime(v, ac.currentTime, tau); }
+    // Marcha de circo sintetizada (composición propia, 16 compases en bucle, 2/4 a 148 ppm):
+    // melodía de calíope (órgano de vapor), tuba «um-pa», acordes a contratiempo, bombo y caja.
+    function circo(ac) {
+      var SEMI = { C: 0, 'C#': 1, D: 2, 'D#': 3, E: 4, F: 5, 'F#': 6, G: 7, 'G#': 8, A: 9, 'A#': 10, B: 11 };
+      function hz(nombre) { var m = /^([A-G]#?)(\d)$/.exec(nombre); return 440 * Math.pow(2, (SEMI[m[1]] + (m[2] - 4) * 12 - 9) / 12); }
+      var DIEC = 60 / 148 / 4;                       // duración de una semicorchea
+      var ACORDES = { C: ['C', 'E', 'G'], C7: ['C', 'E', 'G', 'A#'], F: ['F', 'A', 'C'], G7: ['G', 'B', 'D', 'F'] };
+      var compases = [
+        ['C',  'C5/2 E5/2 G5/2 C6/2'],
+        ['C',  'E6/2 C6/2 G5/2 E5/2'],
+        ['G7', 'D5/2 F5/2 G5/2 B5/2'],
+        ['G7', 'D6/2 B5/2 G5/2 F5/2'],
+        ['G7', 'D5/2 F5/2 G5/2 B5/2'],
+        ['G7', 'D6/1 D#6/1 E6/1 F6/1 F#6/1 G6/1 F6/1 D6/1'],
+        ['C',  'E6/2 C6/2 G5/2 E5/2'],
+        ['C',  'C5/4 -/2 G5/1 B5/1'],
+        ['C',  'C6/1 B5/1 A#5/1 A5/1 G#5/1 G5/1 F#5/1 F5/1'],
+        ['C7', 'E5/1 D#5/1 D5/1 C#5/1 C5/2 E5/2'],
+        ['F',  'F5/2 A5/2 C6/2 F6/2'],
+        ['F',  'E6/2 C6/2 A5/2 F5/2'],
+        ['C',  'E5/2 G5/2 C6/2 E6/2'],
+        ['G7', 'D6/2 B5/2 G5/2 F5/2'],
+        ['G7', 'E5/1 F5/1 F#5/1 G5/1 G#5/1 A5/1 A#5/1 B5/1'],
+        ['C',  'C6/6 -/2'],
+      ];
+      var ruido = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
+      var datos = ruido.getChannelData(0); for (var k = 0; k < datos.length; k++) datos[k] = Math.random() * 2 - 1;
+      function env(g, t, vol, dur, ataque) {
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + (ataque || 0.01));
+        g.gain.setValueAtTime(vol, t + dur * 0.85); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      }
+      function caliope(f, t, dur) {                  // dos ondas cuadradas desafinadas + vibrato + filtro
+        var g = ac.createGain(), lp = ac.createBiquadFilter(), lfo = ac.createOscillator(), lg = ac.createGain();
+        lp.type = 'lowpass'; lp.frequency.value = 2600; env(g, t, 0.28, dur);
+        lfo.frequency.value = 5.5; lg.gain.value = f * 0.006; lfo.connect(lg);
+        [-5, 5].forEach(function (cents) {
+          var o = ac.createOscillator(); o.type = 'square'; o.frequency.value = f; o.detune.value = cents;
+          lg.connect(o.frequency); o.connect(lp); o.start(t); o.stop(t + dur + 0.05);
+        });
+        lfo.start(t); lfo.stop(t + dur + 0.05); lp.connect(g); g.connect(gain);
+      }
+      function tuba(f, t) { var o = ac.createOscillator(), g = ac.createGain(); o.type = 'triangle'; o.frequency.value = f; env(g, t, 0.55, 0.2); o.connect(g); g.connect(gain); o.start(t); o.stop(t + 0.25); }
+      function acorde(notas, t) { notas.forEach(function (n) { var o = ac.createOscillator(), g = ac.createGain(); o.type = 'square'; o.frequency.value = hz(n + '4'); env(g, t, 0.07, 0.09); o.connect(g); g.connect(gain); o.start(t); o.stop(t + 0.12); }); }
+      function bombo(t) { var o = ac.createOscillator(), g = ac.createGain(); o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.12); env(g, t, 0.7, 0.14, 0.005); o.connect(g); g.connect(gain); o.start(t); o.stop(t + 0.16); }
+      function caja(t) { var s = ac.createBufferSource(), bp = ac.createBiquadFilter(), g = ac.createGain(); s.buffer = ruido; bp.type = 'bandpass'; bp.frequency.value = 1800; bp.Q.value = 0.8; env(g, t, 0.22, 0.09, 0.003); s.connect(bp); bp.connect(g); g.connect(gain); s.start(t); s.stop(t + 0.1); }
+      var pasos = [];                                // lista de eventos por semicorchea (0..127)
+      compases.forEach(function (c, b) {
+        var base = b * 8, notas = ACORDES[c[0]], quinta = notas[2];
+        pasos.push({ p: base, f: function (t) { bombo(t); tuba(hz(notas[0] + '3'), t); } });
+        pasos.push({ p: base + 4, f: function (t) { bombo(t); tuba(hz(quinta + '2'), t); } });
+        pasos.push({ p: base + 2, f: function (t) { caja(t); acorde(notas, t); } });
+        pasos.push({ p: base + 6, f: function (t) { caja(t); acorde(notas, t); } });
+        var pos = 0;
+        c[1].split(' ').forEach(function (tok) {
+          var m = /^(.+)\/(\d+)$/.exec(tok), dur = parseInt(m[2], 10), n = m[1], at = base + pos;
+          if (n !== '-') pasos.push({ p: at, f: function (t) { caliope(hz(n), t, dur * DIEC * 0.92); } });
+          pos += dur;
+        });
+      });
+      pasos.sort(function (a, b) { return a.p - b.p; });
+      var TOTAL = compases.length * 8, t0 = ac.currentTime + 0.15, vuelta = 0, i = 0, activo = true;
+      function programar() {
+        if (!activo) return;
+        while (true) {
+          var ev = pasos[i], t = t0 + (vuelta * TOTAL + ev.p) * DIEC;
+          if (t > ac.currentTime + 0.6) break;
+          ev.f(t);
+          if (++i >= pasos.length) { i = 0; vuelta++; }
+        }
+        setTimeout(programar, 150);
+      }
+      programar();
+      return { parar: function () { activo = false; } };
+    }
+    function arrancar() {
+      if (arrancada || !activa || silencio) return;
+      var ac = audio(); arrancada = true;
+      gain = ac.createGain(); gain.gain.value = 0; gain.connect(ac.destination);
+      el = new Audio('audio/ambiente.mp3'); el.loop = true;
+      var caido = false;
+      function fallback() { if (caido) return; caido = true; try { el.pause(); } catch (e) {} sinte = circo(ac); }
+      el.addEventListener('error', fallback);
+      try { ac.createMediaElementSource(el).connect(gain); } catch (e) { fallback(); }
+      var p = el.play(); if (p && p.catch) p.catch(fallback);
+      nivel(VOL, 1.0);
+    }
+    function parar() { nivel(0, 0.3); setTimeout(function () { if (el) el.pause(); if (sinte) sinte.parar(); gain = null; el = null; sinte = null; arrancada = false; }, 1500); }
+    var btn = $('musicaBtn');
+    function pintar() { btn.className = activa ? '' : 'off'; }
+    btn.addEventListener('click', function () { activa = !activa; localStorage.setItem('ruleta_musica', activa ? '1' : '0'); pintar(); if (activa) arrancar(); else parar(); });
+    pintar();
+    document.addEventListener('pointerdown', function primera() { document.removeEventListener('pointerdown', primera, true); arrancar(); }, true);
+    window.__ruletaAudio = function () { return { ac: AC, gain: gain, arrancada: arrancada }; };   // para diagnósticos
+    return { arrancar: arrancar, parar: parar, bajar: function () { nivel(VOL_BAJO, 0.3); }, subir: function () { nivel(VOL, 1.2); } };
+  })();
+
+  // ---------- rueda ----------
+  var rueda = crearRueda($('rueda'), { tamano: Math.min(340, window.innerWidth - 60) });
+  var marca = { color: '#d01e24' }, firmaMarca = '';
+  function aplicarMarca(m) {
+    var f = JSON.stringify(m);
+    if (!m || f === firmaMarca) return;
+    firmaMarca = f; marca = m;
+    document.documentElement.style.setProperty('--rojo', m.color || '#d01e24');
+    document.title = (m.titulo || 'Ruleta') + ' · ' + (m.nombre || '');
+    if (m.logo_largo) { $('logo').src = m.logo_largo; $('logo').hidden = false; $('nombre').textContent = ''; $('scLogo').src = m.logo_largo; $('scLogo').hidden = false; $('scLogo').className = m.invertir_logo ? 'invertir' : ''; $('scMarca').textContent = ''; }
+    else { $('logo').hidden = true; $('nombre').textContent = m.nombre || ''; $('scLogo').hidden = true; $('scMarca').textContent = m.nombre || ''; }
+    $('sub').textContent = (m.titulo || '').toLocaleUpperCase('es-ES');
+    $('intro').textContent = m.intro || '';
+    rueda.setLogo(m.logo_redondo || null);
+  }
+  rueda.onTick = tick;
+  var duracion = 7000, ultimaFirma = '';
+  var temaUrl = (location.search.match(/[?&]tema=([a-z]+)/) || [])[1];
+  function cargarPremios() {
+    fetch('/api/estado?_=' + Date.now()).then(function (r) { return r.json(); }).then(function (e) {
+      duracion = e.duracion_ms || duracion;
+      aplicarMarca(e.marca);
+      var tema = temaUrl || e.tema || 'feria';
+      var f = tema + marca.color + JSON.stringify(e.premios);
+      if (f !== ultimaFirma) { ultimaFirma = f; rueda.setPremios(aplicarTemaRueda(rueda, tema, e.premios, marca.color)); }
+    }).catch(function () {});
+  }
+  cargarPremios(); setInterval(function () { if (!$('v-inicio').hidden) cargarPremios(); }, 60000);
+
+  var premioSorteo = '';   // si la óptica activa el sorteo final, se avisa al dar el premio
+
+  // ---------- textos de privacidad y marca ----------
+  function cargarConfig() {
+    fetch('/api/config?_=' + Date.now()).then(function (r) { return r.json(); }).then(function (c) {
+      if (c.error) { $('intro').textContent = '⚠️ ' + (c.mensaje || 'La ruleta no está bien configurada.'); return; }
+      aplicarMarca(c.marca);
+      $('txtResumen').textContent = c.privacidad.resumen;
+      $('txtComercial').textContent = c.privacidad.comercial;
+      $('txtCompleto').textContent = c.privacidad.completo;
+      duracion = c.duracion_giro_ms || duracion;
+      premioSorteo = c.sorteo && c.sorteo.premio ? c.sorteo.premio : '';
+    }).catch(function () {});
+  }
+  cargarConfig();
+  $('verMas').addEventListener('click', function (e) { e.preventDefault(); $('txtCompleto').hidden = !$('txtCompleto').hidden; });
+
+  // ---------- firma ----------
+  var cv = $('firma'), fctx = cv.getContext('2d'), hayFirma = false, trazando = false, dprF = Math.min(window.devicePixelRatio || 1, 2);
+  function prepararFirma() {
+    var w = cv.clientWidth, h = cv.clientHeight;
+    cv.width = w * dprF; cv.height = h * dprF; fctx.setTransform(dprF, 0, 0, dprF, 0, 0);
+    fctx.lineWidth = 2.6; fctx.lineCap = 'round'; fctx.lineJoin = 'round'; fctx.strokeStyle = '#111';
+    hayFirma = false;
+  }
+  function posF(e) { var r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
+  cv.addEventListener('pointerdown', function (e) { e.preventDefault(); trazando = true; cv.setPointerCapture(e.pointerId); var p = posF(e); fctx.beginPath(); fctx.moveTo(p[0], p[1]); fctx.lineTo(p[0] + 0.1, p[1]); fctx.stroke(); hayFirma = true; });
+  cv.addEventListener('pointermove', function (e) { if (!trazando) return; e.preventDefault(); var p = posF(e); fctx.lineTo(p[0], p[1]); fctx.stroke(); });
+  function finF() { trazando = false; }
+  cv.addEventListener('pointerup', finF); cv.addEventListener('pointercancel', finF); cv.addEventListener('pointerleave', finF);
+  $('borrarFirma').addEventListener('click', function (e) { e.preventDefault(); prepararFirma(); });
+  prepararFirma();
+  window.addEventListener('resize', function () { if (!hayFirma) prepararFirma(); });
+
+  // ---------- flujo ----------
+  var form = $('form'), btn = $('btnGirar'), errorBox = $('error'), sesion = null, temporizador = null, envioEmail = null;
+  function mostrarError(msg) { errorBox.textContent = msg; errorBox.hidden = false; fallo(); }
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    audio(); click();
+    errorBox.hidden = true;
+    var d = {
+      nombre: form.nombre.value.trim(), telefono: form.telefono.value.trim(), email: form.email.value.trim(),
+      consentimiento: form.consentimiento.checked, comercial: form.comercial.checked, firma: hayFirma ? cv.toDataURL('image/png') : null, prueba: PRUEBA,
+    };
+    if (d.nombre.length < 2) return mostrarError('Escribe tu nombre.');
+    if (!/^[+\d][\d\s\-.()]{7,}$/.test(d.telefono)) return mostrarError('El teléfono no parece correcto.');
+    if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(d.email)) return mostrarError('El email no parece correcto.');
+    if (!d.consentimiento) return mostrarError('Marca la casilla de protección de datos para participar.');
+    if (!d.firma) return mostrarError('Firma en el recuadro, por favor.');
+    btn.disabled = true; btn.textContent = 'Un momento…';
+    post('/api/registrar', d).then(function (r) {
+      btn.disabled = false; btn.textContent = '¡GIRAR LA RULETA!';
+      if (r.error) return mostrarError(r.mensaje || 'No se ha podido registrar.');
+      sesion = r;
+      girar();
+    }).catch(function () { btn.disabled = false; btn.textContent = '¡GIRAR LA RULETA!'; mostrarError('Sin conexión. Inténtalo de nuevo.'); });
+  });
+
+  function girar() {
+    vista('v-giro'); musica.bajar();
+    post('/api/girar', { participante_id: sesion.participante_id, token: sesion.token }).then(function (g) {
+      if (g.error) { vista('v-inicio'); return mostrarError(g.mensaje || 'No se ha podido girar.'); }
+      envioEmail = g.puede_repetir ? null : post('/api/enviar', { tirada_id: g.tirada_id, token: sesion.token }).catch(function () { return { enviado: false }; });
+      var idx = rueda.indicePremio(g.premio.id);
+      rueda.girarA(idx, { duracion: g.duracion_ms || duracion, alTerminar: function () { mostrarPremio(g); } });
+    }).catch(function () { vista('v-inicio'); mostrarError('Sin conexión. Inténtalo de nuevo.'); });
+  }
+
+  function mostrarPremio(g) {
+    var p = g.premio, repetir = p.tipo === 'repetir', primer = sesion.nombre.split(' ')[0];
+    $('pTitulo').textContent = repetir ? '¡Sigue jugando, ' + primer + '!' : '¡Enhorabuena, ' + primer + '!';
+    $('pCaja').textContent = repetir ? '¡Tienes otra tirada!' : p.nombre;
+    $('pCaja').className = 'premio-caja' + (repetir ? ' repetir' : '');
+    $('pCodigo').hidden = !g.codigo; $('pCodigo').textContent = g.codigo || '';
+    $('pDetalle').textContent = repetir ? '' : (p.detalle || '');
+    $('btnRepetir').hidden = !repetir;
+    $('btnSiguiente').hidden = repetir;
+    $('pSorteo').hidden = repetir || !premioSorteo;
+    $('pSorteo').innerHTML = '🎁 <b>Y además entras en el sorteo de ' + esc(premioSorteo) + '.</b> Lo haremos en directo en la pantalla grande.';
+    var pe = $('pEmail');
+    if (repetir) { pe.textContent = ''; campanita(); }
+    else {
+      fanfarria(); confeti.lanzar();
+      var antes = p.tipo === 'fisico' ? 'Pídeselo ahora a nuestro equipo. ' : '';
+      pe.textContent = antes + 'Enviando el premio a tu email…';
+      if (envioEmail) envioEmail.then(function (r) {
+        pe.textContent = antes + (r.enviado || r.motivo === 'ya_enviado' ? '✅ Te lo hemos enviado a ' + (r.destinatario || 'tu email') + '.'
+          : r.motivo === 'sin_correo' ? 'Haz una foto a esta pantalla (con el código) para canjear tu premio.'
+          : '⚠️ No hemos podido enviar el email; nuestro equipo te lo reenviará.');
+      });
+    }
+    vista('v-premio');
+    setTimeout(musica.subir, repetir ? 1500 : 4000);
+    clearTimeout(temporizador);
+    if (!repetir) temporizador = setTimeout(reiniciar, 30000);
+  }
+  $('btnRepetir').addEventListener('click', function () { audio(); click(); girar(); });
+  $('btnSiguiente').addEventListener('click', function () { click(); reiniciar(); });
+  function reiniciar() {
+    clearTimeout(temporizador); sesion = null; envioEmail = null;
+    form.reset(); prepararFirma(); errorBox.hidden = true;
+    rueda.reposo(); vista('v-inicio'); cargarPremios(); cargarConfig(); musica.subir();
+  }
+
+  // ---------- sorteo final (lo lanza el panel; el iPad pone el sonido y avisa) ----------
+  // Mismo guion que la pantalla LED (js/sorteo.js), seguido con el reloj del servidor: cuenta atrás
+  // con pitidos, redoble de caja durante el suspense y platillo + fanfarria en cada nombre.
+  var sorteoTablet = (function () {
+    var capa = $('sorteoCapa'), actual = null, oculto = '', bus = null, ruido = null, reloj = null;
+    var ORD = ['Primer', 'Segundo', 'Tercer', 'Cuarto', 'Quinto'];
+    function golpe(ac, cuando, dur, vol, frec, filtro) {
+      if (!ruido) { ruido = ac.createBuffer(1, ac.sampleRate, ac.sampleRate); var d = ruido.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
+      var s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+      s.buffer = ruido; f.type = filtro; f.frequency.value = frec;
+      g.gain.setValueAtTime(vol, cuando); g.gain.exponentialRampToValueAtTime(0.0001, cuando + dur);
+      s.connect(f); f.connect(g); g.connect(bus); s.start(cuando); s.stop(cuando + dur + 0.02);
+    }
+    function tono(ac, cuando, frec, dur, vol, tipo) {
+      var o = ac.createOscillator(), g = ac.createGain();
+      o.type = tipo; o.frequency.value = frec;
+      g.gain.setValueAtTime(0.0001, cuando); g.gain.exponentialRampToValueAtTime(vol, cuando + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, cuando + dur);
+      o.connect(g); g.connect(bus); o.start(cuando); o.stop(cuando + dur + 0.05);
+    }
+    function fanfarriaEn(ac, cuando, larga) {
+      golpe(ac, cuando, larga ? 2.4 : 1.6, 0.45, 6000, 'highpass');                      // platillo
+      tono(ac, cuando, 90, 0.4, 0.5, 'sine');                                             // bombo
+      [523.25, 659.25, 783.99, 1046.5].forEach(function (f, i) { tono(ac, cuando + i * 0.11, f, 0.35, 0.28, 'triangle'); });
+      [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach(function (f) { tono(ac, cuando + 0.5, f, larga ? 2.6 : 1.5, 0.16, 'triangle'); });
+      if (larga) [659.25, 783.99, 1046.5, 1318.5, 1568].forEach(function (f, i) { tono(ac, cuando + 1.2 + i * 0.13, f, 0.5, 0.2, 'triangle'); });
+    }
+    // Programa de golpe todos los sonidos que quedan por delante (t = ms del guion ya transcurridos).
+    function programar(s, t) {
+      callar();
+      if (silencio) return;
+      var ac = audio();
+      bus = ac.createGain(); bus.gain.value = 1; bus.connect(ac.destination);
+      var T = s.tiempos, n = s.ganadores.length, ciclo = T.suspense + T.premio, base = ac.currentTime - t / 1000, i, k, c, ini, fin;
+      function en(ms) { return base + ms / 1000; }
+      for (i = 5; i >= 1; i--) { c = T.intro - i * 1000; if (c > t) tono(ac, en(c), 660, 0.14, 0.28, 'square'); }
+      if (T.intro > t) tono(ac, en(T.intro), 1320, 0.5, 0.28, 'square');
+      for (k = 0; k < n; k++) {
+        ini = T.intro + k * ciclo; fin = ini + T.suspense;
+        for (c = ini + 300; c < fin - 60; c += 62) if (c > t) golpe(ac, en(c), 0.07, 0.05 + 0.2 * ((c - ini) / T.suspense), 1900, 'bandpass');   // redoble que crece
+        if (fin > t) fanfarriaEn(ac, en(fin), false);
+      }
+      fin = T.intro + n * ciclo;
+      if (fin > t) fanfarriaEn(ac, en(fin), true);
+    }
+    function callar() { if (bus) { try { bus.gain.value = 0; bus.disconnect(); } catch (e) {} bus = null; } }
+    function pintar() {
+      if (!actual) return;
+      var t = Date.now() - actual.t0Local, T = actual.tiempos, n = actual.ganadores.length, ciclo = T.suspense + T.premio;
+      var estado = $('scEstado'), revelados = 0, texto = '', cuenta = false, fin = false, i, html = '';
+      if (t < 0) texto = '¡Atención! Empieza el sorteo';
+      else if (t < T.intro) { var resto = Math.ceil((T.intro - t) / 1000); if (resto <= 5) { texto = String(resto); cuenta = true; } else texto = 'Entre ' + actual.participantes + ' participantes'; }
+      else {
+        var u = t - T.intro, k = Math.floor(u / ciclo);
+        if (k >= n) { revelados = n; texto = '¡Enhorabuena!'; fin = true; }
+        else if (u - k * ciclo < T.suspense) { revelados = k; texto = (n === 1 ? 'Y el premio es para…' : (ORD[k] || (k + 1) + 'º') + ' premio…'); }
+        else { revelados = k + 1; texto = '¡Enhorabuena!'; }
+      }
+      estado.textContent = texto; estado.className = 'sc-estado' + (cuenta ? ' cuenta' : '');
+      for (i = 0; i < revelados; i++) html += '<div>' + esc(actual.ganadores[i].mostrar) + (actual.ganadores[i].tel ? '<small>TEL. ' + esc(actual.ganadores[i].tel) + '</small>' : '') + '</div>';
+      if ($('scNombres').innerHTML !== html) $('scNombres').innerHTML = html;
+      $('scPie').textContent = fin ? 'Nos pondremos en contacto con ' + (n === 1 ? 'el ganador' : 'los ganadores') : 'Mira la pantalla grande';
+      $('scCerrar').hidden = !fin;
+    }
+    function cerrar() { actual = null; capa.hidden = true; clearInterval(reloj); callar(); musica.subir(); }
+    $('scCerrar').addEventListener('click', function () { oculto = actual ? actual.firma : ''; cerrar(); });
+    return {
+      actualizar: function (s, desfase) {
+        if (!s) { oculto = ''; if (actual) cerrar(); return; }
+        var firma = s.id + '|' + s.emitido_en;
+        if (firma === oculto || (actual && actual.firma === firma)) return;
+        actual = s; actual.firma = firma; actual.t0Local = Date.parse(s.emitido_en) + s.tiempos.inicio - desfase;
+        $('scPremio').textContent = s.premio || ''; $('scPrueba').hidden = !s.prueba;
+        capa.hidden = false; musica.bajar();
+        programar(s, Date.now() - actual.t0Local);
+        clearInterval(reloj); reloj = setInterval(pintar, 200); pintar();
+      }
+    };
+  })();
+  function vigilarSorteo() {
+    fetch('/api/estado?_=' + Date.now()).then(function (r) { return r.json(); }).then(function (e) {
+      if (e && e.ahora) sorteoTablet.actualizar(e.sorteo || null, Date.parse(e.ahora) - Date.now());
+    }).catch(function () {});
+  }
+  setInterval(vigilarSorteo, 4000);
+
+  // ---------- confeti ----------
+  var confeti = (function (c) {
+    var ctx = c.getContext('2d'), parts = [], colores = ['#e0201f', '#ffd23f', '#1e6fd9', '#1db954', '#ff7a00', '#ff3d8a', '#8e3fd9'];
+    function tam() { c.width = window.innerWidth; c.height = window.innerHeight; }
+    window.addEventListener('resize', tam); tam();
+    function lanzar() {
+      var W = c.width, H = c.height;
+      for (var i = 0; i < 220; i++) parts.push({ x: W / 2 + (Math.random() - .5) * W * .4, y: H * .55, vx: (Math.random() - .5) * 22, vy: -Math.random() * 22 - 8,
+        w: 6 + Math.random() * 7, h: 9 + Math.random() * 9, r: Math.random() * 6, vr: (Math.random() - .5) * .3, c: colores[Math.floor(Math.random() * colores.length)], vida: 260 + Math.random() * 80 });
+      if (parts.length === 220) tick();
+    }
+    function tick() {
+      ctx.clearRect(0, 0, c.width, c.height);
+      for (var i = parts.length - 1; i >= 0; i--) {
+        var p = parts[i]; p.vy += .4; p.x += p.vx; p.y += p.vy; p.vx *= .985; p.r += p.vr; p.vida--;
+        if (p.vida <= 0 || p.y > c.height + 20) { parts.splice(i, 1); continue; }
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c; ctx.globalAlpha = Math.min(1, p.vida / 60); ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); ctx.restore();
+      }
+      if (parts.length) requestAnimationFrame(tick); else ctx.clearRect(0, 0, c.width, c.height);
+    }
+    return { lanzar: lanzar };
+  })($('confeti'));
+})();
+</script>
+</body>
+</html>

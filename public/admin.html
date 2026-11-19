@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Ruleta · Panel</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<style>
+  body { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; background: #f4f4f4; color: #111; font-size: 14px; }
+  header { background: #111; color: #fff; padding: 12px 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  header h1 { font-size: 17px; margin: 0; flex: 1; }
+  header a { color: #ffd23f; }
+  main { padding: 16px 20px 40px; max-width: 1400px; margin: 0 auto; }
+  section { background: #fff; border-radius: 12px; padding: 16px 18px; margin-bottom: 16px; box-shadow: 0 1px 6px rgba(0,0,0,.05); }
+  h2 { font-size: 16px; margin: 0 0 12px; }
+  h3 { font-size: 14px; margin: 18px 0 8px; }
+  .totales { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .tot { background: #f7f7f7; border-radius: 10px; padding: 10px 16px; min-width: 120px; }
+  .tot b { display: block; font-size: 26px; }
+  .tot small { color: #666; }
+  button { font: inherit; padding: 8px 14px; border-radius: 8px; border: 1px solid #ccc; background: #fff; cursor: pointer; }
+  button.rojo { background: #d01e24; color: #fff; border-color: #d01e24; }
+  button.negro { background: #111; color: #fff; border-color: #111; }
+  button:disabled { opacity: .5; }
+  .acciones { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .tabla { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 6px 6px; border-bottom: 1px solid #eee; vertical-align: middle; }
+  th { font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: .04em; }
+  input, select, textarea { font: inherit; padding: 6px 8px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+  textarea { width: 100%; min-height: 90px; }
+  input.corto { width: 64px; } input.medio { width: 120px; } input.largo { width: 100%; min-width: 180px; } input.color { width: 44px; padding: 2px; height: 32px; }
+  .muted { color: #888; } .ok { color: #1a9c3f; font-weight: 700; } .mal { color: #d01e24; font-weight: 700; }
+  .etiqueta { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; background: #eee; }
+  .etiqueta.prueba { background: #ffd23f; }
+  #login { max-width: 420px; margin: 80px auto; }
+  #aviso { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: #111; color: #fff; padding: 10px 18px; border-radius: 10px; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: 90vw; z-index: 9; }
+  #aviso.ver { opacity: 1; }
+  .prob { font-variant-numeric: tabular-nums; }
+  /* primeros pasos */
+  #pasos ol { margin: 0; padding-left: 0; list-style: none; }
+  #pasos li { padding: 7px 0; border-bottom: 1px solid #f0f0f0; display: flex; gap: 10px; align-items: baseline; }
+  #pasos li .marca { width: 22px; flex: 0 0 22px; font-weight: 700; }
+  #pasos li.hecho { color: #888; }
+  #pasos li.hecho .marca { color: #1a9c3f; }
+  /* ajustes */
+  details { border: 1px solid #eee; border-radius: 10px; padding: 0 14px; margin-bottom: 10px; }
+  details[open] { padding-bottom: 14px; }
+  summary { cursor: pointer; font-weight: 700; padding: 12px 0; }
+  .campos { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px 16px; }
+  .campos label, .campo { display: block; font-weight: 600; font-size: 13px; }
+  .campos label input, .campos label select, .campo textarea { display: block; width: 100%; margin-top: 4px; font-weight: 400; }
+  .campos label.check { display: flex; gap: 8px; align-items: center; }
+  .campos label.check input { width: auto; margin: 0; }
+  .ayuda { font-weight: 400; color: #777; font-size: 12px; margin-top: 3px; }
+  .logos { display: flex; gap: 24px; flex-wrap: wrap; }
+  .logo-caja { border: 1px dashed #ccc; border-radius: 10px; padding: 12px; width: 300px; }
+  .logo-caja .vista { height: 90px; display: flex; align-items: center; justify-content: center; background: #111; border-radius: 8px; margin: 8px 0; }
+  .logo-caja .vista img { max-height: 80px; max-width: 260px; }
+  .logo-caja.redondo .vista img { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; }
+  .peligro { border-color: #f3c2c4; }
+  footer { text-align: center; color: #999; font-size: 12px; padding: 10px 0 30px; }
+  footer a { color: #777; }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="titulo">Ruleta de premios · panel</h1>
+  <a href="/pantalla" target="_blank">Pantalla</a>
+  <a href="/tablet" target="_blank">Tablet</a>
+  <a href="/tablet?prueba=1" target="_blank">Tablet (modo prueba)</a>
+  <button id="salir" hidden>Salir</button>
+</header>
+<main>
+  <section id="login">
+    <h2>Clave del panel</h2>
+    <p class="muted">Es la que pusiste en la variable <code>CLAVE_PANEL</code> al instalar la ruleta en Vercel.</p>
+    <p><input type="password" id="clave" class="largo" placeholder="Clave"></p>
+    <button class="negro" id="entrar">Entrar</button>
+  </section>
+
+  <div id="panel" hidden>
+    <section id="pasos" hidden>
+      <h2>👋 Primeros pasos</h2>
+      <ol id="listaPasos"></ol>
+    </section>
+
+    <section>
+      <h2>Resumen</h2>
+      <div class="totales" id="totales"></div>
+      <div class="acciones">
+        <button class="rojo" id="btnProbar">🎡 Tirada de prueba (gira la pantalla)</button>
+        <button id="btnRecargar">Recargar</button>
+        <button id="btnParticipantes">⬇ Participantes (CSV)</button>
+        <button id="btnTiradas">⬇ Tiradas (CSV)</button>
+        <button id="btnBorrarPruebas">🗑 Borrar datos de prueba</button>
+      </div>
+      <p id="avisoCorreo" class="mal" hidden></p>
+    </section>
+
+    <section id="secSorteo">
+      <h2>🏆 Sorteo final<span id="sorteoPremio"></span></h2>
+      <div id="sorteoApagado" class="muted" hidden>El sorteo final está desactivado. Si quieres sortear un premio entre todos los participantes, actívalo en <b>Ajustes → Sorteo final</b>.</div>
+      <div id="sorteoEncendido">
+        <p class="muted">Entran todos los participantes reales de la ruleta (ahora mismo: <b id="sorteoN">0</b>). Al pulsar, la pantalla hace el sorteo en directo (cuenta atrás y unos 25 s por ganador) y el iPad pone el redoble. Los ganadores quedan guardados aquí con su teléfono y su email. El de prueba usa nombres inventados y sale con el cartel «PRUEBA».</p>
+        <p class="acciones">
+          <label>Animación <select id="sorteoEstilo"><option value="tragaperras">Tragaperras (carrete de nombres)</option><option value="eliminacion">Eliminación (se apagan los nombres)</option><option value="letras">Letra a letra</option></select></label>
+          <label>Ganadores <input id="sorteoGanadores" class="corto" type="number" min="1" max="5" value="1"></label>
+          <button id="btnSorteoPrueba">▶ Sorteo de PRUEBA</button>
+          <button class="rojo" id="btnSorteoReal">🏆 HACER EL SORTEO REAL</button>
+          <button id="btnSorteoCerrar">Quitar el sorteo de la pantalla</button>
+        </p>
+        <div class="tabla"><table id="sorteos"><thead><tr><th>Hora</th><th>Tipo</th><th>Animación</th><th>En el bombo</th><th>Ganadores</th><th>En pantalla</th><th></th></tr></thead><tbody></tbody></table></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Premios (gajos de la ruleta)</h2>
+      <p class="muted">La probabilidad es el peso dividido entre la suma de pesos de los premios que quedan con stock. Stock vacío = sin límite. En la etiqueta, <b>|</b> parte el texto en dos líneas (VALE|10 €). Cambia lo que quieras y pulsa «Guardar» en la fila; la pantalla se actualiza sola.</p>
+      <div class="tabla"><table id="premios"><thead><tr><th>Orden</th><th>Etiqueta (gajo)</th><th>Nombre completo</th><th>Detalle / condiciones</th><th>Tipo</th><th>Peso</th><th>Prob.</th><th>Stock</th><th>Dados</th><th>Color</th><th>Activo</th><th></th></tr></thead><tbody></tbody></table></div>
+      <p><button id="btnNuevo">+ Añadir premio</button></p>
+    </section>
+
+    <section>
+      <h2 id="tituloTiradas">Últimas tiradas</h2>
+      <p class="acciones"><input id="buscar" class="largo" style="max-width:420px" placeholder="Canjear: busca por código, nombre, teléfono o email"><button class="negro" id="btnBuscar">Buscar</button><button id="btnUltimas">Ver últimas</button></p>
+      <div class="tabla"><table id="tiradas"><thead><tr><th>Hora</th><th>Nombre</th><th>Teléfono</th><th>Email</th><th>Premio</th><th>Código</th><th>Email enviado</th><th>Canjeado</th><th></th></tr></thead><tbody></tbody></table></div>
+    </section>
+
+    <section id="secAjustes">
+      <h2>⚙️ Ajustes</h2>
+      <form id="formAjustes" autocomplete="off">
+        <details id="dOptica">
+          <summary>Tu óptica</summary>
+          <div class="campos">
+            <label>Nombre de la óptica<input name="optica.nombre" placeholder="Óptica Ejemplo"><div class="ayuda">Sale en la pantalla, el iPad y el email.</div></label>
+            <label>Dirección<input name="optica.direccion" placeholder="Calle Mayor, 1 · 28001 Madrid"></label>
+            <label>Teléfono<input name="optica.telefono"></label>
+            <label>Email de contacto<input name="optica.email" type="email"></label>
+            <label>Web<input name="optica.web" placeholder="www.tuoptica.es"></label>
+            <label>Horario<input name="optica.horario" placeholder="L-V 9:30-20:00, S 10:00-14:00"></label>
+          </div>
+        </details>
+
+        <details>
+          <summary>Evento y textos</summary>
+          <div class="campos">
+            <label>Título<input name="evento.titulo" placeholder="Ruleta de premios"><div class="ayuda">Arriba del iPad y en el email.</div></label>
+            <label>Subtítulo de la pantalla<input name="evento.subtitulo" placeholder="FERIA 2026"><div class="ayuda">Debajo del logo en la pantalla. Vacío = el título.</div></label>
+            <label>Validez de los vales<input name="evento.validez_vales" placeholder="31 de diciembre de 2026"><div class="ayuda">Sale en el email de los premios tipo «vale».</div></label>
+            <label>Prefijo de los códigos<input name="evento.prefijo_codigo" placeholder="PREMIO" maxlength="10"><div class="ayuda">Los códigos salen como PREMIO-3F9A2C.</div></label>
+            <label>Firma del email<input name="evento.firma_email" placeholder="Ana López · Óptica Ejemplo"></label>
+          </div>
+          <label class="campo" style="margin-top:10px">Texto de bienvenida del iPad<textarea name="evento.intro" style="min-height:50px"></textarea></label>
+        </details>
+
+        <details id="dLegal">
+          <summary>Datos legales (protección de datos)</summary>
+          <p class="muted">Con estos datos la ruleta redacta el texto de privacidad que acepta cada participante. <b>Revísalo con tu asesor o delegado de protección de datos</b> antes de usarla: la responsable de los datos es tu óptica.</p>
+          <div class="campos">
+            <label>Razón social<input name="legal.razon_social" placeholder="Óptica Ejemplo S.L."></label>
+            <label>CIF / NIF<input name="legal.cif"></label>
+            <label>Dirección fiscal<input name="legal.direccion"><div class="ayuda">Vacío = la de la óptica.</div></label>
+            <label>Email para ejercer derechos<input name="legal.email_derechos" type="email"><div class="ayuda">Vacío = el email de contacto.</div></label>
+            <label>Delegado de protección de datos (si tienes)<input name="legal.dpo" placeholder="Nombre o empresa y su email"></label>
+          </div>
+          <label class="campo" style="margin-top:10px">Texto de privacidad propio (opcional)<textarea name="legal.texto_privacidad" placeholder="Si lo rellenas, sustituye al texto que genera la ruleta."></textarea></label>
+          <p><button type="button" id="btnVerPrivacidad">Ver el texto que verá el participante</button></p>
+          <div id="vistaPrivacidad" class="muted" hidden style="background:#fafafa;border:1px solid #eee;border-radius:8px;padding:10px 12px;font-size:12.5px;line-height:1.45"></div>
+          <label class="campo" style="margin-top:10px">Pie legal del email (opcional)<textarea name="legal.clausula_email" placeholder="La cláusula de confidencialidad / protección de datos que pones en tus correos."></textarea></label>
+        </details>
+
+        <details>
+          <summary>Sorteo final</summary>
+          <p class="muted">Opcional: al final del evento sorteas un premio gordo entre todos los que han jugado, en directo en la pantalla. Comprueba con tu gestoría si tu sorteo necesita bases o tasa.</p>
+          <div class="campos">
+            <label class="check"><input type="checkbox" name="sorteo.activo"> Hacer un sorteo final</label>
+            <label>Premio del sorteo<input name="sorteo.premio" placeholder="unas gafas de sol de marca"><div class="ayuda">Se lee «entras en el sorteo de …».</div></label>
+            <label>Ganadores<input name="sorteo.ganadores" type="number" min="1" max="5"></label>
+            <label>Animación por defecto<select name="sorteo.estilo"><option value="tragaperras">Tragaperras</option><option value="eliminacion">Eliminación</option><option value="letras">Letra a letra</option></select></label>
+          </div>
+        </details>
+
+        <details>
+          <summary>Aspecto</summary>
+          <div class="campos">
+            <label>Color principal<input name="aspecto.color" type="color" style="height:38px"></label>
+            <label>Colores de la rueda<select name="aspecto.tema"><option value="feria">Feria (el color de cada premio)</option><option value="marca">Marca (negro, blanco y tu color)</option><option value="oro">Oro (negro, oro y tu color)</option></select></label>
+            <label>Duración del giro (segundos)<input name="aspecto.duracion_giro_s" type="number" min="5" max="40"></label>
+            <label class="check"><input type="checkbox" name="aspecto.invertir_logo"> Invertir el logo en la pantalla<span class="ayuda">(si tu logo es negro: la pantalla tiene fondo negro)</span></label>
+          </div>
+        </details>
+
+        <details id="dCorreo">
+          <summary>Correo (para enviar el premio por email)</summary>
+          <p class="muted">Opcional pero muy recomendable. Sin correo, el iPad enseña el premio y el código y el cliente le hace una foto. Con Gmail: servidor <code>smtp.gmail.com</code>, puerto <code>587</code>, usuario tu dirección y como contraseña una <b>contraseña de aplicación</b> (Cuenta de Google → Seguridad → Verificación en dos pasos → Contraseñas de aplicaciones).</p>
+          <div id="correoVariables" class="ok" hidden>El correo está configurado con las variables SMTP de Vercel (mandan sobre lo de aquí).</div>
+          <div class="campos">
+            <label>Servidor SMTP<input name="email.host" placeholder="smtp.gmail.com"></label>
+            <label>Puerto<input name="email.port" type="number" placeholder="587"></label>
+            <label>Usuario<input name="email.user" placeholder="tuoptica@gmail.com" autocomplete="off"></label>
+            <label>Contraseña<input name="email.pass" type="password" autocomplete="new-password"><div class="ayuda" id="ayudaPass">Vacío = no se cambia.</div></label>
+            <label>Remitente (opcional)<input name="email.from" placeholder="Óptica Ejemplo &lt;tuoptica@gmail.com&gt;"></label>
+          </div>
+          <p class="acciones"><input id="emailPrueba" type="email" placeholder="Enviar una prueba a…" style="min-width:240px"><button type="button" id="btnEmailPrueba">✉️ Enviar email de prueba</button><span class="muted">(guarda antes los cambios)</span></p>
+        </details>
+
+        <p class="acciones"><button class="negro" type="submit" id="btnGuardarAjustes">💾 Guardar ajustes</button></p>
+      </form>
+
+      <details id="dLogos">
+        <summary>Logos</summary>
+        <p class="muted">Se guardan al elegirlos. Si no subes ninguno, sale el nombre de la óptica.</p>
+        <div class="logos">
+          <div class="logo-caja">
+            <b>Logo alargado</b><div class="ayuda">Cabecera de la pantalla, del iPad y del email. PNG con fondo transparente, mejor.</div>
+            <div class="vista" id="vistaLargo"><span class="muted">sin logo</span></div>
+            <input type="file" accept="image/png,image/jpeg,image/webp" id="fileLargo"> <button type="button" id="quitarLargo">Quitar</button>
+          </div>
+          <div class="logo-caja redondo">
+            <b>Logo redondo</b><div class="ayuda">Centro de la rueda. Una imagen cuadrada (se recorta en círculo).</div>
+            <div class="vista" id="vistaRedondo"><span class="muted">sin logo</span></div>
+            <input type="file" accept="image/png,image/jpeg,image/webp" id="fileRedondo"> <button type="button" id="quitarRedondo">Quitar</button>
+          </div>
+        </div>
+      </details>
+
+      <details class="peligro">
+        <summary>Empezar de cero (para otro evento)</summary>
+        <p>Borra <b>todos</b> los participantes, tiradas y sorteos y repone el stock de los premios. Los premios y los ajustes se quedan. <b>Descarga antes el CSV de participantes</b>: no se puede deshacer.</p>
+        <p class="acciones"><input id="confirmarCero" placeholder="Escribe BORRAR"><button class="rojo" type="button" id="btnCero">Borrar todo y empezar de cero</button></p>
+      </details>
+    </section>
+  </div>
+</main>
+<footer>Ruleta de premios para ópticas · plantilla libre (licencia MIT) · <a href="https://github.com/juliomoga/ruleta-optica" id="enlaceRepo" target="_blank" rel="noopener">código y guía</a></footer>
+<div id="aviso"></div>
+<script>
+const $ = (id) => document.getElementById(id);
+let clave = localStorage.getItem('ruleta_clave') || '';
+let datos = null;
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function aviso(t, ms) { const a = $('aviso'); a.textContent = t; a.classList.add('ver'); clearTimeout(aviso.t); aviso.t = setTimeout(() => a.classList.remove('ver'), ms || 2600); }
+async function api(accion, cuerpo, params) {
+  const r = await fetch('/api/admin?accion=' + accion + (params ? '&' + new URLSearchParams(params) : ''), { method: cuerpo ? 'POST' : 'GET', headers: { 'x-clave': clave, 'Content-Type': 'application/json' }, body: cuerpo ? JSON.stringify(cuerpo) : undefined });
+  let j; try { j = await r.json(); } catch { throw new Error('Respuesta no válida del servidor (' + r.status + ')'); }
+  if (r.status === 401) { salir(); throw new Error('clave'); }
+  if (j.error) throw new Error(j.mensaje || j.error);
+  return j;
+}
+function salir() { clave = ''; localStorage.removeItem('ruleta_clave'); $('login').hidden = false; $('panel').hidden = true; $('salir').hidden = true; }
+$('entrar').onclick = async () => {
+  clave = $('clave').value.trim();
+  try { await api('resumen'); localStorage.setItem('ruleta_clave', clave); cargar(); }
+  catch (e) { aviso(e.message === 'clave' ? 'Clave incorrecta' : e.message, 8000); }
+};
+$('clave').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('entrar').click(); });
+$('salir').onclick = salir;
+
+const fecha = (s) => s ? new Date(s).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+
+async function cargar() {
+  const d = await api('resumen');
+  datos = d;
+  $('login').hidden = true; $('panel').hidden = false; $('salir').hidden = false;
+  const a = d.ajustes;
+  $('titulo').textContent = (a.optica.nombre || 'Ruleta de premios') + ' · panel';
+  const t = d.totales;
+  $('totales').innerHTML = `
+    <div class="tot"><b>${t.participantes}</b><small>participantes</small></div>
+    <div class="tot"><b>${t.comerciales}</b><small>aceptan ofertas</small></div>
+    <div class="tot"><b>${t.tiradas}</b><small>tiradas</small></div>
+    <div class="tot"><b class="${t.emails_pendientes > 0 && d.correo ? 'mal' : ''}">${t.emails_pendientes}</b><small>emails sin enviar</small></div>
+    <div class="tot"><b>${t.participantes_prueba} / ${t.tiradas_prueba}</b><small>pruebas (personas / tiradas)</small></div>`;
+  $('avisoCorreo').hidden = !!d.correo;
+  $('avisoCorreo').textContent = '⚠️ El correo no está configurado: los premios no se envían por email (Ajustes → Correo).';
+  pintarPasos(d);
+  pintarPremios(d.premios);
+  pintarTiradas(d.tiradas, 'Últimas tiradas');
+  pintarSorteos(d);
+  if (!cargar.formHecho) { cargar.formHecho = true; rellenarAjustes(a, d.correo); }
+  pintarLogos(a);
+}
+
+// ---------------------------------------------------------------- primeros pasos
+function pintarPasos(d) {
+  const a = d.ajustes;
+  const pasos = [
+    [!!a.optica.nombre, 'Pon el nombre y los datos de tu óptica', 'dOptica'],
+    [!!(a.legal.razon_social || a.legal.texto_privacidad), 'Rellena los datos legales y revisa el texto de privacidad', 'dLegal'],
+    [a.logos.largo || a.logos.redondo, 'Sube tu logo (opcional)', 'dLogos'],
+    [!!d.correo, 'Configura el correo para enviar los premios (opcional)', 'dCorreo'],
+    [d.totales.tiradas_prueba > 0 || d.totales.tiradas > 0, 'Cambia los premios de ejemplo y haz una «Tirada de prueba» con la pantalla abierta', null],
+  ];
+  const hechos = pasos.filter((p) => p[0]).length;
+  $('pasos').hidden = hechos === pasos.length && d.totales.tiradas > 0;
+  $('listaPasos').innerHTML = pasos.map((p) => `<li class="${p[0] ? 'hecho' : ''}"><span class="marca">${p[0] ? '✓' : '○'}</span><span>${p[2] ? `<a href="#" data-abrir="${p[2]}">${esc(p[1])}</a>` : esc(p[1])}</span></li>`).join('') +
+    '<li><span class="marca">ℹ︎</span><span>Antes de abrir al público: «Borrar datos de prueba». Al acabar: descarga el CSV de participantes.</span></li>';
+}
+$('listaPasos').addEventListener('click', (e) => {
+  const id = e.target.dataset && e.target.dataset.abrir; if (!id) return;
+  e.preventDefault(); $(id).open = true; $(id).scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+// ---------------------------------------------------------------- ajustes
+function rellenarAjustes(a, correo) {
+  for (const el of $('formAjustes').querySelectorAll('[name]')) {
+    const [g, c] = el.name.split('.');
+    const v = a[g] ? a[g][c] : '';
+    if (el.type === 'checkbox') el.checked = v === true; else el.value = v ?? '';
+  }
+  $('ayudaPass').textContent = a.email.tiene_pass ? 'Guardada. Vacío = no se cambia.' : 'Sin contraseña guardada.';
+  $('correoVariables').hidden = !(correo && correo.origen === 'variables');
+  $('emailPrueba').value = a.optica.email || '';
+}
+function leerFormulario() {
+  const o = {};
+  for (const el of $('formAjustes').querySelectorAll('[name]')) {
+    const [g, c] = el.name.split('.');
+    o[g] = o[g] || {};
+    o[g][c] = el.type === 'checkbox' ? el.checked : el.value;
+  }
+  return o;
+}
+$('formAjustes').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  $('btnGuardarAjustes').disabled = true;
+  try { await api('guardar-ajustes', leerFormulario()); $('formAjustes').querySelector('[name="email.pass"]').value = ''; aviso('Ajustes guardados. La pantalla y el iPad se actualizan solos.'); cargar.formHecho = false; await cargar(); }
+  catch (err) { aviso('Error: ' + err.message, 6000); }
+  $('btnGuardarAjustes').disabled = false;
+});
+$('btnVerPrivacidad').onclick = async () => {
+  try {
+    const c = await (await fetch('/api/config?_=' + Date.now())).json();
+    $('vistaPrivacidad').hidden = false;
+    $('vistaPrivacidad').innerHTML = `<p><b>☐ ${esc(c.privacidad.resumen)}</b></p><p><b>☐ ${esc(c.privacidad.comercial)}</b></p><p>${esc(c.privacidad.completo)}</p><p><i>Es el texto guardado: si has cambiado algo, guarda primero.</i></p>`;
+  } catch (e) { aviso('Error: ' + e.message); }
+};
+$('btnEmailPrueba').onclick = async () => {
+  $('btnEmailPrueba').disabled = true;
+  try { const r = await api('email-prueba', { para: $('emailPrueba').value.trim() }); aviso('✅ Enviado a ' + r.para + '. Mira la bandeja (y el spam).', 5000); }
+  catch (e) { aviso(e.message, 9000); }
+  $('btnEmailPrueba').disabled = false;
+};
+
+// Logos: se reducen en el navegador antes de subirlos (máx. 800 px el alargado, 400×400 el redondo).
+function reducir(file, redondo) {
+  return new Promise((ok, mal) => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.naturalWidth, h = img.naturalHeight, sx = 0, sy = 0, sw = w, sh = h;
+      if (redondo) { const lado = Math.min(w, h); sx = (w - lado) / 2; sy = (h - lado) / 2; sw = sh = lado; w = h = Math.min(400, lado); }
+      else { const k = Math.min(1, 800 / w, 300 / h); w = Math.round(w * k); h = Math.round(h * k); }
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
+      let url = c.toDataURL('image/png');
+      if (url.length > 900000) url = c.toDataURL('image/jpeg', 0.85);
+      ok(url);
+    };
+    img.onerror = () => mal(new Error('No se puede leer la imagen'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+async function subirLogo(tipo, file) {
+  try { await api('logo', { tipo, imagen: file ? await reducir(file, tipo === 'redondo') : null }); aviso(file ? 'Logo guardado' : 'Logo quitado'); await cargar(); }
+  catch (e) { aviso('Error: ' + e.message, 6000); }
+}
+$('fileLargo').onchange = (e) => e.target.files[0] && subirLogo('largo', e.target.files[0]);
+$('fileRedondo').onchange = (e) => e.target.files[0] && subirLogo('redondo', e.target.files[0]);
+$('quitarLargo').onclick = () => subirLogo('largo', null);
+$('quitarRedondo').onclick = () => subirLogo('redondo', null);
+function pintarLogos(a) {
+  const v = a.logos.version;
+  $('vistaLargo').innerHTML = a.logos.largo ? `<img src="/api/logo?tipo=largo&v=${v}" style="${a.aspecto.invertir_logo ? 'filter:invert(1)' : ''}">` : '<span class="muted">sin logo</span>';
+  $('vistaRedondo').innerHTML = a.logos.redondo ? `<img src="/api/logo?tipo=redondo&v=${v}">` : '<span class="muted">sin logo</span>';
+}
+
+$('btnCero').onclick = async () => {
+  if ($('confirmarCero').value.trim() !== 'BORRAR') return aviso('Escribe BORRAR en la casilla para confirmar');
+  if (!confirm('¿Seguro? Se borran todos los participantes, tiradas y sorteos. No se puede deshacer.')) return;
+  try { const r = await api('empezar-de-cero', { confirmar: 'BORRAR' }); aviso(`Borrados ${r.participantes} participantes, ${r.tiradas} tiradas y ${r.sorteos} sorteos`, 5000); $('confirmarCero').value = ''; cargar(); }
+  catch (e) { aviso('Error: ' + e.message); }
+};
+
+// ---------------------------------------------------------------- sorteo
+let sorteosReales = [];
+function pintarSorteos(d) {
+  const cfg = d.ajustes.sorteo;
+  $('sorteoApagado').hidden = cfg.activo; $('sorteoEncendido').hidden = !cfg.activo;
+  $('sorteoPremio').textContent = cfg.activo && cfg.premio ? ': ' + cfg.premio : '';
+  $('sorteoN').textContent = d.totales.participantes;
+  if (!pintarSorteos.hecho) { pintarSorteos.hecho = true; $('sorteoEstilo').value = cfg.estilo || 'tragaperras'; $('sorteoGanadores').value = cfg.ganadores || 1; }
+  sorteosReales = (d.sorteos || []).filter((s) => !s.prueba);
+  $('sorteos').querySelector('tbody').innerHTML = (d.sorteos || []).map((s) => `<tr data-id="${s.id}">
+      <td>${fecha(s.creado_en)}</td>
+      <td>${s.prueba ? '<span class="etiqueta prueba">prueba</span>' : '<span class="etiqueta" style="background:#d01e24;color:#fff">REAL</span>'}</td>
+      <td>${esc(s.estilo)}</td><td>${s.participantes}</td>
+      <td>${s.ganadores.map((g) => `<b>${esc(g.nombre)}</b> · ${esc(g.telefono)}${g.email ? ' · ' + esc(g.email) : ''}`).join('<br>')}</td>
+      <td>${s.cerrado_en ? '<span class="muted">quitado</span>' : fecha(s.emitido_en)}</td>
+      <td><button class="repetir">Repetir en pantalla</button></td></tr>`).join('')
+    || '<tr><td colspan="7" class="muted">Todavía no se ha hecho ningún sorteo</td></tr>';
+}
+async function lanzarSorteo(prueba) {
+  const estilo = $('sorteoEstilo').value, ganadores = Number($('sorteoGanadores').value) || 1;
+  if (!prueba) {
+    const n = $('sorteoN').textContent;
+    let texto = `Vas a hacer el SORTEO REAL entre ${n} participantes.\nSaldrán ${ganadores} ganador(es) en la pantalla y quedarán guardados. No se puede deshacer.\n\n¿Seguro?`;
+    if (sorteosReales.length) texto = `ATENCIÓN: ya se hizo un sorteo real (${sorteosReales[0].ganadores.map((g) => g.nombre).join(', ')}).\nSi sigues se hará OTRO sorteo entre el resto de participantes.\n\n` + texto;
+    if (!confirm(texto)) return;
+  }
+  const b1 = $('btnSorteoPrueba'), b2 = $('btnSorteoReal');
+  b1.disabled = b2.disabled = true;
+  try { const r = await api('sorteo', { prueba, estilo, ganadores }); aviso(`Sorteo ${prueba ? 'de prueba ' : ''}en marcha: ${r.ganadores.map((g) => g.nombre).join(' y ')}`); }
+  catch (e) { aviso('Error: ' + e.message, 6000); }
+  setTimeout(() => { b1.disabled = b2.disabled = false; cargar(); }, 4000);
+}
+$('btnSorteoPrueba').onclick = () => lanzarSorteo(true);
+$('btnSorteoReal').onclick = () => lanzarSorteo(false);
+$('btnSorteoCerrar').onclick = async () => { try { const r = await api('sorteo-cerrar', {}); aviso(r.cerrados ? 'Sorteo quitado de la pantalla' : 'No había ningún sorteo en pantalla'); cargar(); } catch (e) { aviso('Error: ' + e.message); } };
+$('sorteos').addEventListener('click', async (e) => {
+  const tr = e.target.closest('tr'); if (!tr || !e.target.classList.contains('repetir')) return;
+  if (!confirm('Se repetirá la animación en la pantalla con los MISMOS ganadores (y la animación elegida arriba). ¿Seguir?')) return;
+  try { await api('sorteo-repetir', { id: Number(tr.dataset.id), estilo: $('sorteoEstilo').value }); aviso('Repitiendo en la pantalla'); cargar(); } catch (err) { aviso('Error: ' + err.message); }
+});
+
+// ---------------------------------------------------------------- premios y tiradas
+function pintarPremios(premios) {
+  const disponibles = premios.filter((p) => p.activo && p.peso > 0 && (p.stock == null || p.entregados < p.stock));
+  const suma = disponibles.reduce((s, p) => s + Number(p.peso), 0);
+  $('premios').querySelector('tbody').innerHTML = premios.map((p) => {
+    const disp = disponibles.includes(p);
+    return `<tr data-id="${p.id}">
+      <td><input class="corto" name="orden" type="number" value="${p.orden}"></td>
+      <td><input class="medio" name="etiqueta" value="${esc(p.etiqueta)}" title="Usa | para partir en dos líneas"></td>
+      <td><input class="largo" name="nombre" value="${esc(p.nombre)}"></td>
+      <td><input class="largo" name="detalle" value="${esc(p.detalle)}"></td>
+      <td><select name="tipo"><option value="fisico"${p.tipo === 'fisico' ? ' selected' : ''}>físico</option><option value="vale"${p.tipo === 'vale' ? ' selected' : ''}>vale</option><option value="repetir"${p.tipo === 'repetir' ? ' selected' : ''}>sigue jugando</option></select></td>
+      <td><input class="corto" name="peso" type="number" step="0.5" min="0" value="${p.peso}"></td>
+      <td class="prob ${disp ? '' : 'muted'}">${disp && suma ? (100 * p.peso / suma).toFixed(1) + ' %' : '—'}</td>
+      <td><input class="corto" name="stock" type="number" min="0" value="${p.stock ?? ''}" placeholder="∞"></td>
+      <td>${p.entregados}${p.stock != null && p.entregados >= p.stock ? ' <span class="mal">agotado</span>' : ''}</td>
+      <td><input class="color" name="color" type="color" value="${esc(p.color)}"></td>
+      <td><input name="activo" type="checkbox"${p.activo ? ' checked' : ''}></td>
+      <td style="white-space:nowrap"><button class="negro guardar">Guardar</button> <button class="borrar" title="Borrar">✕</button></td></tr>`;
+  }).join('');
+}
+function pintarTiradas(tiradas, titulo) {
+  $('tituloTiradas').textContent = titulo;
+  $('tiradas').querySelector('tbody').innerHTML = tiradas.map((t) => `<tr data-id="${t.id}">
+      <td>${fecha(t.creado_en)}${t.prueba ? ' <span class="etiqueta prueba">prueba</span>' : ''}</td>
+      <td>${esc(t.nombre) || '<span class="muted">— sin participante —</span>'}</td><td>${esc(t.telefono)}</td><td>${esc(t.email)}</td>
+      <td>${esc(t.premio_nombre)}</td><td>${esc(t.codigo)}</td>
+      <td>${t.premio_tipo === 'repetir' || !t.nombre ? '<span class="muted">n/a</span>' : t.email_enviado_en ? `<span class="ok">✓ ${fecha(t.email_enviado_en)}</span>` : `<span class="mal" title="${esc(t.email_error)}">✗ ${t.email_error ? esc(t.email_error === 'Correo sin configurar' ? 'sin correo' : 'error') : 'pendiente'}</span>`}</td>
+      <td>${t.premio_tipo === 'repetir' ? '' : `<input type="checkbox" class="canjear"${t.canjeado_en ? ' checked' : ''}>`}</td>
+      <td>${t.premio_tipo !== 'repetir' && t.email ? '<button class="reenviar">Reenviar email</button>' : ''}</td></tr>`).join('')
+    || '<tr><td colspan="9" class="muted">Sin resultados</td></tr>';
+}
+async function buscar() {
+  const texto = $('buscar').value.trim();
+  if (texto.length < 2) return aviso('Escribe al menos 2 caracteres');
+  try { const r = await api('buscar', null, { q: texto }); pintarTiradas(r.tiradas, `Resultados de «${texto}» (${r.tiradas.length})`); }
+  catch (e) { aviso('Error: ' + e.message); }
+}
+$('btnBuscar').onclick = buscar;
+$('buscar').addEventListener('keydown', (e) => { if (e.key === 'Enter') buscar(); });
+$('btnUltimas').onclick = () => { $('buscar').value = ''; cargar(); };
+function datosFila(tr) {
+  const o = { id: Number(tr.dataset.id) };
+  tr.querySelectorAll('[name]').forEach((el) => { o[el.name] = el.type === 'checkbox' ? el.checked : el.type === 'number' ? (el.value === '' ? '' : Number(el.value)) : el.value; });
+  return o;
+}
+$('premios').addEventListener('click', async (e) => {
+  const tr = e.target.closest('tr'); if (!tr) return;
+  try {
+    if (e.target.classList.contains('guardar')) { await api('premio', datosFila(tr)); aviso('Guardado'); cargar(); }
+    if (e.target.classList.contains('borrar')) { if (!confirm('¿Borrar este premio?')) return; const r = await api('premio-borrar', { id: Number(tr.dataset.id) }); aviso(r.borrado ? 'Borrado' : 'Desactivado (ya tiene tiradas)'); cargar(); }
+  } catch (err) { aviso('Error: ' + err.message); }
+});
+$('tiradas').addEventListener('click', async (e) => {
+  const tr = e.target.closest('tr'); if (!tr) return;
+  try {
+    if (e.target.classList.contains('reenviar')) { e.target.disabled = true; const r = await api('reenviar', { tirada_id: Number(tr.dataset.id) }); aviso(r.enviado ? 'Enviado a ' + r.destinatario : 'No enviado: ' + (r.motivo === 'sin_correo' ? 'el correo no está configurado' : (r.detalle || r.motivo)), 5000); cargar(); }
+    if (e.target.classList.contains('canjear')) { await api('canjear', { tirada_id: Number(tr.dataset.id), canjeado: e.target.checked }); aviso(e.target.checked ? 'Marcado como canjeado' : 'Desmarcado'); }
+  } catch (err) { aviso('Error: ' + err.message); }
+});
+$('btnNuevo').onclick = async () => { await api('premio-nuevo', {}); cargar(); };
+$('btnProbar').onclick = async () => { $('btnProbar').disabled = true; try { const r = await api('probar', {}); aviso('Girando… ha salido: ' + r.premio); } catch (e) { aviso('Error: ' + e.message, 6000); } setTimeout(() => { $('btnProbar').disabled = false; cargar(); }, 3000); };
+$('btnRecargar').onclick = cargar;
+$('btnBorrarPruebas').onclick = async () => { if (!confirm('¿Borrar todos los registros, tiradas y sorteos marcados como prueba?')) return; const r = await api('borrar-pruebas', {}); aviso(`Borrados ${r.participantes} participantes, ${r.tiradas} tiradas y ${r.sorteos} sorteos de prueba`); cargar(); };
+$('btnParticipantes').onclick = () => window.open('/api/admin?accion=participantes.csv&clave=' + encodeURIComponent(clave));
+$('btnTiradas').onclick = () => window.open('/api/admin?accion=tiradas.csv&clave=' + encodeURIComponent(clave));
+if (clave) cargar().catch((e) => aviso(e.message === 'clave' ? 'Vuelve a entrar' : e.message, 8000));
+</script>
+</body>
+</html>
