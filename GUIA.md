@@ -1,5 +1,7 @@
 # Guía de instalación (paso a paso)
 
+📄 También la tienes en PDF, con capturas: https://optometria.ai/descargas/ruleta-premios
+
 Unos 15 minutos. No hace falta saber programar: solo crear dos cuentas gratuitas y pulsar un botón.
 
 Al acabar tendrás tu ruleta en una dirección como `https://ruleta-tuoptica.vercel.app`, con tres

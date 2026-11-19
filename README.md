@@ -18,6 +18,8 @@ tus clientes quedan en **tu** cuenta: nadie más los ve.
 
 ## Instalar
 
+📄 **Guía en PDF con capturas, paso a paso:** https://optometria.ai/descargas/ruleta-premios
+
 👉 **Sigue la [guía paso a paso](GUIA.md)** (unos 15 minutos, no hace falta saber programar).
 
 Resumen para quien ya conoce Vercel:
